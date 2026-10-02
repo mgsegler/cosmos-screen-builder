@@ -1,0 +1,1389 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>COSMOS Screen Builder</title>
+<style>
+:root{
+  --bg:#0e1116;--panel:#151a21;--panel2:#1b212a;--line:#262e39;--text:#d6dde6;--muted:#8792a2;--faint:#5d6878;
+  --accent:#4da3ff;--accent-weak:rgba(77,163,255,.14);--danger:#ff6b6b;--warn:#f5c451;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  /* Approximations of the COSMOS data-visualization palette, for preview only */
+  --color-data-visualization-1:#5fa8f0;--color-data-visualization-2:#a77be6;--color-data-visualization-3:#e9a23b;
+  --color-data-visualization-4:#4fc08d;--color-data-visualization-5:#ec6a77;--color-data-visualization-6:#3cc3c8;
+  --color-data-visualization-7:#d5b23a;--color-data-visualization-8:#97a2b6;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--text);font:13px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:grid;grid-template-rows:46px minmax(0,1fr);overflow:hidden}
+button,input,select,textarea{font:inherit;color:inherit}
+header{display:flex;align-items:center;gap:6px;padding:0 10px;background:var(--panel);border-bottom:1px solid var(--line)}
+header h1{font-size:14px;font-weight:600;margin:0 10px 0 2px;white-space:nowrap}
+header .sp{flex:1}
+.btn{background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:5px 10px;cursor:pointer;white-space:nowrap}
+.btn:hover:not(:disabled){border-color:#3a4554;background:#222935}
+.btn.primary{background:#1f5fa8;border-color:#2a72c4;color:#fff}
+.btn.primary:hover:not(:disabled){background:#2a6fbf}
+.btn:disabled{opacity:.4;cursor:default}
+.btn.sm{padding:2px 7px;font-size:12px}
+.btn.danger{color:var(--danger)}
+.tog{display:flex;align-items:center;gap:5px;color:var(--muted);white-space:nowrap;cursor:pointer}
+main{display:grid;grid-template-columns:220px minmax(0,1fr) 330px;min-height:0}
+
+/* left: palette + outline */
+#left{background:var(--panel);border-right:1px solid var(--line);display:grid;grid-template-rows:auto auto minmax(0,1.2fr) auto minmax(0,1fr);min-height:0}
+.ptitle{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:9px 10px 5px;font-weight:600}
+.ptitle.bt{border-top:1px solid var(--line)}
+#search{margin:0 10px 6px;padding:5px 8px;background:var(--bg);border:1px solid var(--line);border-radius:5px;width:calc(100% - 20px)}
+#palette,#outline{overflow:auto;padding:0 6px 10px}
+.pcat{font-size:11px;color:var(--faint);margin:10px 4px 3px;text-transform:uppercase;letter-spacing:.05em}
+.pi{padding:3px 8px;border-radius:4px;cursor:grab;font-family:var(--mono);font-size:12px;color:#c4ccd7;user-select:none}
+.pi:hover{background:var(--accent-weak);color:#fff}
+.orow{font-family:var(--mono);font-size:11.5px;padding:2px 6px;border-radius:3px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#b9c2ce}
+.orow:hover{background:#1f2630}
+.orow.sel{background:var(--accent-weak);color:#fff}
+.orow .s{color:var(--faint);margin-left:6px}
+.orow.raw{color:#6f7d70;font-style:italic}
+.orow.unk .t{color:var(--warn)}
+
+/* center: stage + code */
+#center{display:grid;grid-template-rows:minmax(0,1fr) auto auto;min-height:0;min-width:0}
+#stagewrap{overflow:auto;padding:28px;background-color:#0b0e12;background-image:radial-gradient(#1c232d 1px,transparent 1px);background-size:16px 16px}
+#grip{height:6px;cursor:ns-resize;background:var(--panel);border-top:1px solid var(--line)}
+#grip:hover{background:#1f2834}
+#codepanel{background:var(--panel);display:flex;flex-direction:column;height:240px;min-height:60px}
+.codebar{display:flex;align-items:center;gap:6px;padding:4px 10px 6px}
+.codebar .ptitle{padding:0;margin-right:6px}
+#codestatus{color:var(--muted);font-size:12px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#codestatus.dirty{color:var(--warn)}
+#codestatus.err{color:var(--danger)}
+#code{flex:1;resize:none;margin:0 10px 10px;background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:8px 10px;font:12.5px/1.5 var(--mono);color:#cfe3c9;tab-size:2;white-space:pre;outline:none}
+#code:focus{border-color:#35506f}
+
+/* right: inspector */
+#right{background:var(--panel);border-left:1px solid var(--line);overflow:auto;min-height:0}
+#insp{padding:12px 14px 30px}
+.itype{font-family:var(--mono);font-size:16px;font-weight:600;color:#fff}
+.icat{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.idesc{color:#aab3bf;margin:6px 0 0}
+.sec{margin-top:16px;border-top:1px solid var(--line);padding-top:10px}
+.sech{display:flex;align-items:center;justify-content:space-between;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;margin-bottom:6px}
+.fld{display:block;margin:0 0 10px}
+.fld>span{display:block;font-size:12px;color:#aab3bf;margin-bottom:2px}
+.fld>span b{color:var(--danger);font-weight:400}
+.fld input,.fld select,.fld textarea,.srow input,.srow select,.sech select{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:4px 7px;outline:none}
+.fld textarea{font-family:var(--mono);font-size:12px;resize:vertical;min-height:54px}
+.fld input:focus,.fld select:focus,.fld textarea:focus,.srow input:focus{border-color:#3d6ea3}
+.fld input.bad{border-color:#7a3a3a}
+.fld .hint{font-size:11px;color:var(--faint);margin-top:2px}
+.srow{display:grid;grid-template-columns:104px 1fr 24px;gap:4px;margin:4px 0}
+.srow input{font-family:var(--mono);font-size:12px}
+.srow button{background:none;border:none;color:var(--faint);cursor:pointer;font-size:15px;padding:0}
+.srow button:hover{color:var(--danger)}
+.sech select{width:auto;max-width:170px;text-transform:none;letter-spacing:0;font-weight:400;font-size:12px;padding:2px 4px}
+.acts{display:flex;flex-wrap:wrap;gap:5px}
+.note{background:#1b2230;border:1px solid #29344a;border-radius:6px;padding:8px 10px;color:#aeb8c6;font-size:12px;margin-top:10px}
+.note.warn{border-color:#5a4a20;background:#231f12;color:#e3cf8f}
+.tips{color:#9aa4b1;font-size:12px;padding-left:16px;margin:6px 0}
+.tips li{margin:4px 0}
+kbd{font-family:var(--mono);font-size:11px;background:#232a34;border:1px solid #333d4a;border-radius:3px;padding:0 4px}
+
+#dropline{position:fixed;display:none;background:var(--accent);border-radius:2px;pointer-events:none;z-index:1000;box-shadow:0 0 6px var(--accent)}
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#243246;border:1px solid #35506f;color:#fff;padding:7px 14px;border-radius:6px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:1001}
+#toast.on{opacity:1}
+
+/* ---------- COSMOS-like preview ---------- */
+.screen{display:inline-block;min-width:220px;background:#1b2330;color:#e8eef5;border:1px solid #2e3a4b;border-radius:4px;box-shadow:0 8px 30px rgba(0,0,0,.45);font:14px/1.3 Roboto,"Helvetica Neue",Arial,sans-serif;vertical-align:top}
+.screen-title{background:#243042;padding:6px 10px;font-size:13px;font-weight:600;letter-spacing:.02em;display:flex;justify-content:space-between;gap:20px;color:#dfe7f1;border-radius:4px 4px 0 0}
+.screen-title span{color:#7f8da1;font-weight:400}
+.screen-body{padding:8px;overflow:auto}
+.kids{display:flex;gap:4px;min-height:18px}
+.kids.o-v{flex-direction:column}
+.kids.o-h{flex-direction:row;align-items:flex-start}
+.kids.o-g{display:grid;align-items:center;column-gap:8px}
+.kids.drop-target{background:rgba(77,163,255,.07);border-radius:3px}
+.w{position:relative;border:1px dashed transparent;border-radius:2px}
+.w.leaf{display:flex;align-items:center;gap:6px;padding:1px 2px;min-height:22px}
+.w.leaf.j-split{justify-content:space-between}
+.w.leaf.j-center{justify-content:center}
+.w.leaf.j-right{justify-content:flex-end}
+.w.cont{padding:3px}
+.guides .w.cont{border-color:rgba(110,150,210,.35);padding-top:13px}
+.guides .w.cont.framed{padding-top:3px}
+.w .ctag{display:none;position:absolute;top:0;left:0;font:9px/12px var(--mono);padding:0 4px;color:#8fb8ea;background:rgba(77,163,255,.14);border-radius:0 0 3px 0;pointer-events:none;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.guides .w.cont:not(.framed)>.ctag{display:block}
+.w:hover:not(:has(.w:hover)){border-color:rgba(77,163,255,.6)}
+.w.sel{outline:2px solid var(--accent);outline-offset:1px;z-index:2}
+.w.framed{border:1px solid #3a4658;border-radius:4px;padding:3px 6px 6px}
+.w.framed>.boxtitle{font-size:13px;font-weight:600;color:#c9d6e6;padding:3px 2px 5px}
+.empty{color:#6b7a90;font-size:11px;border:1px dashed #3a4a60;padding:8px 10px;text-align:center;border-radius:3px;min-width:110px;font-family:system-ui,sans-serif}
+.lbl{white-space:pre}
+.vb{display:inline-block;border:1px solid #3d4b60;border-radius:3px;padding:1px 6px;background:#111925;font:13px/18px "Roboto Mono",Menlo,monospace;white-space:pre;overflow:hidden;text-align:left}
+.ttl{font-size:20px;font-weight:500;text-align:center;padding:4px 8px;width:100%}
+.shdr{width:100%;border-bottom:1px solid #8a97a8;font-weight:600;padding:2px 0}
+.hr{width:100%;height:0;border-top:1px solid #56647a;margin:4px 0}
+.leaf.c-horizontalline,.leaf.c-title,.leaf.c-sectionheader{flex:1 1 auto;align-self:stretch}
+.spacer{display:inline-block}
+.guides .spacer{background:repeating-linear-gradient(45deg,transparent 0 4px,rgba(120,150,190,.15) 4px 8px)}
+.lbar{position:relative;display:inline-block;border:1px solid #4a5568;background:linear-gradient(to right,#ff3838 0 10%,#fce83a 10% 20%,#56f000 20% 80%,#fce83a 80% 90%,#ff3838 90%)}
+.lbar.vert{background:linear-gradient(to top,#ff3838 0 10%,#fce83a 10% 20%,#56f000 20% 80%,#fce83a 80% 90%,#ff3838 90%)}
+.lbar .m{position:absolute;top:-2px;bottom:-2px;width:3px;background:#fff;box-shadow:0 0 0 1px #000;transform:translateX(-1px)}
+.lbar.vert .m{top:auto;left:-2px;right:-2px;width:auto;height:3px;bottom:50%}
+.rbar{position:relative;display:inline-block;border:1px solid #4a5568;background:#2a3646}
+.rbar .m{position:absolute;top:-2px;bottom:-2px;width:3px;background:#fff}
+.pbar{display:inline-block;height:16px;border:1px solid #4a5568;background:#16202c;border-radius:2px;overflow:hidden}
+.pbar i{display:block;height:100%;background:#2d8cf0}
+.led{display:inline-block;border-radius:50%;border:1px solid rgba(0,0,0,.5)}
+.btnp{display:inline-block;background:#2a5d9a;color:#fff;border-radius:4px;padding:4px 12px;font-size:13px;font-weight:500;text-transform:none;white-space:pre}
+.tf{display:inline-block;border-bottom:1px solid #8090a5;padding:2px 4px;min-height:22px;background:#152030;color:#c7d2df;white-space:pre}
+.chk{display:inline-block;width:14px;height:14px;border:2px solid #8fa0b6;border-radius:2px}
+.chk.on{background:#4da3ff;border-color:#4da3ff}
+.radio{display:inline-block;width:14px;height:14px;border:2px solid #8fa0b6;border-radius:50%}
+.panelbox{display:inline-flex;flex-direction:column;border:1px solid #3d4b60;background:#111925;font:12px/1.4 "Roboto Mono",Menlo,monospace;color:#c7d2df;overflow:hidden;padding:4px 6px;white-space:pre}
+.graph{display:inline-block;border:1px solid #3d4b60;background:#111925;position:relative}
+.graph .gl{position:absolute;top:3px;left:6px;font-size:11px;color:#9fb0c5}
+.ph{display:inline-flex;align-items:center;justify-content:center;border:1px dashed #556377;color:#8796aa;font-size:12px;text-align:center;padding:4px;background:#141c27;overflow:hidden}
+.gen{font-family:var(--mono);font-size:12px;color:var(--warn);border:1px dashed #6b5a2a;padding:2px 6px;border-radius:3px}
+.tabhdrs{display:flex;gap:2px;border-bottom:1px solid #3a4658;min-height:28px;align-items:flex-end}
+.tabh{padding:5px 14px;color:#9fb0c5;cursor:pointer;border-bottom:2px solid transparent;font-size:13px;text-transform:uppercase;letter-spacing:.04em;border-radius:0}
+.tabh.act{color:#fff;border-bottom-color:#4da3ff}
+.tabh.sel{outline:2px solid var(--accent)}
+.tabpane{padding-top:4px}
+svg.cv{display:block;overflow:visible}
+svg.cv [data-id]{cursor:move}
+svg.cv .hit{stroke:transparent}
+svg.cv .selbox{fill:none;stroke:#4da3ff;stroke-width:1.5;stroke-dasharray:4 3;pointer-events:none}
+.guides svg.cv{outline:1px dashed rgba(110,150,210,.35)}
+</style>
+</head>
+<body>
+<header>
+  <h1>COSMOS Screen Builder</h1>
+  <button class="btn" id="bNew" title="Start a blank screen">New</button>
+  <button class="btn" id="bExample" title="Load the example screen">Example</button>
+  <button class="btn" id="bOpen" title="Open a COSMOS screen .txt file">Open…</button>
+  <input type="file" id="file" accept=".txt,text/plain" hidden>
+  <button class="btn" id="bUndo" title="Undo (Ctrl/Cmd+Z)">Undo</button>
+  <button class="btn" id="bRedo" title="Redo (Ctrl/Cmd+Shift+Z)">Redo</button>
+  <label class="tog"><input type="checkbox" id="guides" checked> Layout guides</label>
+  <span class="sp"></span>
+  <button class="btn" id="bDownload">Download .txt</button>
+  <button class="btn primary" id="bCopy">Copy screen text</button>
+</header>
+<main>
+  <aside id="left">
+    <div class="ptitle">Widgets</div>
+    <input id="search" placeholder="Filter widgets…" autocomplete="off">
+    <div id="palette"></div>
+    <div class="ptitle bt">Outline</div>
+    <div id="outline"></div>
+  </aside>
+  <section id="center">
+    <div id="stagewrap"><div id="stage"></div></div>
+    <div id="grip" title="Drag to resize"></div>
+    <div id="codepanel">
+      <div class="codebar">
+        <span class="ptitle">Screen definition</span>
+        <span id="codestatus"></span>
+        <button class="btn sm" id="bApply" disabled>Apply text → designer</button>
+        <button class="btn sm" id="bRevert" disabled>Revert</button>
+      </div>
+      <textarea id="code" spellcheck="false"></textarea>
+    </div>
+  </section>
+  <aside id="right"><div id="insp"></div></aside>
+</main>
+<div id="dropline"></div>
+<div id="toast"></div>
+<datalist id="dl-tgt"></datalist><datalist id="dl-pkt"></datalist><datalist id="dl-item"></datalist><datalist id="dl-color"></datalist>
+
+<script>
+'use strict';
+
+/* =====================================================================
+   Widget catalog
+   Param spec: n=name, k=kind (str|num|choice|tgt|pkt|item|code|list|color),
+   opt=optional, fill=value emitted when blank but a later param is set,
+   init=value for a freshly created widget, opts=choices
+   ===================================================================== */
+const VT = ['RAW','CONVERTED','FORMATTED','WITH_UNITS'];
+const JUST = ['SPLIT','CENTER','LEFT','RIGHT'];
+const TLM = [{n:'Target',k:'tgt',init:'INST'},{n:'Packet',k:'pkt',init:'HEALTH_STATUS'},{n:'Item',k:'item',init:'TEMP1'}];
+const vt = fill => ({n:'Value type',k:'choice',opts:VT,opt:true,fill});
+const o = (n,fill,k='num',x={}) => ({n,k,opt:true,fill,...x});
+const r = (n,init='',k='str',x={}) => ({n,k,init,...x});
+const CH = (fill='12') => o('Characters',fill);
+const COMMON_SETTINGS = ['WIDTH 100','HEIGHT 50','PADDING 5','MARGIN 5','BACKCOLOR var(--color-data-visualization-1)','TEXTCOLOR white','BORDERCOLOR grey','TEXTALIGN CENTER','RAW font-weight bold'];
+
+const DEFS = {
+  // ---- Layout
+  VERTICAL:{cat:'Layout',grp:'lay',box:'v',desc:'Stacks widgets top-to-bottom. Invisible on the real screen.',params:[o('Margin','0')]},
+  HORIZONTAL:{cat:'Layout',grp:'lay',box:'h',desc:'Places widgets left-to-right. Invisible on the real screen.',params:[o('Margin','0')]},
+  VERTICALBOX:{cat:'Layout',grp:'lay',box:'v',framed:true,desc:'Bordered box with optional title; stacks widgets top-to-bottom.',params:[o('Title','','str',{init:'Group'}),o('Margin','0')]},
+  HORIZONTALBOX:{cat:'Layout',grp:'lay',box:'h',framed:true,desc:'Bordered box with optional title; places widgets left-to-right.',params:[o('Title','','str',{init:'Group'}),o('Margin','0')]},
+  MATRIXBYCOLUMNS:{cat:'Layout',grp:'lay',box:'g',desc:'Grid filled row by row with N columns.',params:[r('Columns','2','num'),o('Margin','0')]},
+  SCROLLWINDOW:{cat:'Layout',grp:'lay',box:'v',scroll:true,desc:'Scrollable area of fixed height.',params:[o('Height','200','num',{init:'200'}),o('Margin','0')]},
+  TABBOOK:{cat:'Layout',box:'tabs',desc:'Tabbed container. Holds TABITEMs. Click a tab header to switch tabs.',params:[],kids:()=>[mk('TABITEM',['Tab 1']),mk('TABITEM',['Tab 2'])]},
+  TABITEM:{cat:'Layout',box:'v',desc:'One tab page. Only goes inside a TABBOOK.',params:[r('Tab text','Tab')]},
+
+  // ---- Decoration
+  TITLE:{cat:'Decoration',grp:'txt',desc:'Large centered title text.',params:[r('Text','Title')]},
+  LABEL:{cat:'Decoration',grp:'txt',desc:'Static text. Font params are optional (use nil to skip).',params:[r('Text','Label'),o('Font','nil','str'),o('Size','nil'),o('Weight','nil','choice',{opts:['NORMAL','BOLD']}),o('Italic','nil','choice',{opts:['true','false']})]},
+  SECTIONHEADER:{cat:'Decoration',grp:'txt',desc:'Text with an underline.',params:[r('Text','Section')]},
+  HORIZONTALLINE:{cat:'Decoration',desc:'Horizontal divider line.',params:[]},
+  SPACER:{cat:'Decoration',desc:'Empty space of a fixed size.',params:[r('Width','20','num'),r('Height','20','num')]},
+
+  // ---- Telemetry
+  VALUE:{cat:'Telemetry',grp:'tlm',desc:'Telemetry value in a box.',params:[...TLM,vt('WITH_UNITS'),CH()]},
+  LABELVALUE:{cat:'Telemetry',grp:'tlm',desc:'Item name and its value.',params:[...TLM,vt('WITH_UNITS'),CH(),o('Justification','SPLIT','choice',{opts:JUST})]},
+  LABELVALUEDESC:{cat:'Telemetry',grp:'tlm',desc:'Description (or item name) and value.',params:[...TLM,o('Description','','str'),vt('WITH_UNITS'),CH()]},
+  FORMATVALUE:{cat:'Telemetry',grp:'tlm',desc:'Value formatted with a printf-style string.',params:[...TLM,r('Format','%.2f'),vt('CONVERTED'),CH()]},
+  LABELVALUELIMITSBAR:{cat:'Telemetry',grp:'tlm',desc:'Label, value, and limits bar. Subwidgets: 0 label, 1 value, 2 bar.',params:[...TLM,vt('CONVERTED'),CH()]},
+  LABELVALUELIMITSCOLUMN:{cat:'Telemetry',grp:'tlm',desc:'Label, value, and vertical limits column.',params:[...TLM,vt('CONVERTED'),CH()]},
+  VALUELIMITSBAR:{cat:'Telemetry',grp:'tlm',desc:'Value and limits bar. Subwidgets: 0 value, 1 bar.',params:[...TLM,vt('CONVERTED'),CH()]},
+  VALUELIMITSCOLUMN:{cat:'Telemetry',grp:'tlm',desc:'Value and vertical limits column.',params:[...TLM,vt('CONVERTED'),CH()]},
+  LIMITSBAR:{cat:'Telemetry',grp:'tlm',desc:'Horizontal limits bar.',params:[...TLM,vt('CONVERTED'),o('Width','160'),o('Height','25')]},
+  LIMITSCOLUMN:{cat:'Telemetry',grp:'tlm',desc:'Vertical limits column.',params:[...TLM,vt('CONVERTED'),o('Width','30'),o('Height','100')]},
+  LIMITSCOLOR:{cat:'Telemetry',grp:'tlm',desc:'Colored dot showing limits state.',params:[...TLM,vt('CONVERTED'),o('Radius','10'),o('Full name','FALSE','choice',{opts:['TRUE','FALSE','NIL']})],xs:['ASTRO TRUE']},
+  RANGEBAR:{cat:'Telemetry',grp:'tlm',desc:'Bar showing value between low and high.',params:[...TLM,r('Low','0','num'),r('High','100','num'),vt('CONVERTED'),o('Width','160'),o('Height','25')]},
+  VALUERANGEBAR:{cat:'Telemetry',grp:'tlm',desc:'Value and range bar.',params:[...TLM,r('Low','0','num'),r('High','100','num'),vt('CONVERTED'),CH(),o('Width','160'),o('Height','25')]},
+  LABELVALUERANGEBAR:{cat:'Telemetry',grp:'tlm',desc:'Label, value and range bar.',params:[...TLM,r('Low','0','num'),r('High','100','num'),vt('CONVERTED'),CH(),o('Width','160'),o('Height','25')]},
+  PROGRESSBAR:{cat:'Telemetry',grp:'tlm',desc:'Progress bar (value × scale, 0-100).',params:[...TLM,o('Scale','1.0'),o('Width','80'),vt('CONVERTED')]},
+  LABELPROGRESSBAR:{cat:'Telemetry',grp:'tlm',desc:'Label and progress bar.',params:[...TLM,o('Scale','1.0'),o('Width','80'),vt('CONVERTED')]},
+  LED:{cat:'Telemetry',grp:'tlm',desc:'Colored LED. Map values to colors with SETTING LED_COLOR <value> <color>.',params:[...TLM,vt('CONVERTED'),o('Width','15'),o('Height','15')],settings:[['SETTING','LED_COLOR','GOOD','GREEN'],['SETTING','LED_COLOR','BAD','RED']],xs:['LED_COLOR GOOD GREEN','LED_COLOR BAD RED','LED_COLOR ANY ORANGE']},
+  LABELLED:{cat:'Telemetry',grp:'tlm',desc:'Label and LED. Map values with SETTING LED_COLOR.',params:[...TLM,vt('CONVERTED'),o('Width','15'),o('Height','15'),o('Justification','SPLIT','choice',{opts:JUST})],settings:[['SETTING','LED_COLOR','GOOD','GREEN'],['SETTING','LED_COLOR','BAD','RED']],xs:['LED_COLOR GOOD GREEN','LED_COLOR BAD RED','LED_COLOR ANY ORANGE']},
+  TEXTBOX:{cat:'Telemetry',grp:'tlm',desc:'Multi-line text box for long string values.',params:[...TLM,o('Width','200'),o('Height','200')]},
+  ARRAY:{cat:'Telemetry',grp:'tlm',desc:'Array values in a grid.',params:[...TLM,o('Width','200'),o('Height','100'),o('Format','nil','str'),o('Items per row','4'),vt('WITH_UNITS')],init:{2:'ARY'}},
+  BLOCK:{cat:'Telemetry',grp:'tlm',desc:'Hex dump of a block item.',params:[...TLM,o('Width','200'),o('Height','100'),o('Format','%02X','str'),o('Bytes per word','4'),o('Words per row','4'),o('Address format','nil','str'),vt('RAW')]},
+  IMAGEVIEWER:{cat:'Telemetry',desc:'Displays an image item (base64 or binary).',params:[...TLM,r('Format','png'),o('Width','nil'),o('Height','nil')]},
+
+  // ---- Graphs
+  SPARKLINE:{cat:'Graphs',grp:'tlm',desc:'Small inline graph.',params:[...TLM,vt('CONVERTED')],xs:['HISTORY 60s','SIZE 400 50']},
+  LABELSPARKLINE:{cat:'Graphs',grp:'tlm',desc:'Label, value and sparkline.',params:[...TLM,vt('CONVERTED')],xs:['HISTORY 60s','SIZE 400 50']},
+  LINEGRAPH:{cat:'Graphs',grp:'tlm',desc:'Full line graph. Add more lines with SETTING ITEM.',params:[...TLM,vt('CONVERTED'),o('Reduced','DECOM','choice',{opts:['DECOM','REDUCED_MINUTE','REDUCED_HOUR','REDUCED_DAY']}),o('Reduced type','AVG','choice',{opts:['MIN','MAX','AVG','STDDEV']})],xs:['ITEM INST HEALTH_STATUS TEMP2','HISTORY 1h','SIZE 600 300','SECONDSGRAPHED 60','POINTSSAVED 600','POINTSGRAPHED 60']},
+  ARRAYPLOT:{cat:'Graphs',desc:'Plots array items. Configure entirely with settings.',params:[],settings:[['SETTING','TITLE','Array Data'],['SETTING','ITEM','INST','HEALTH_STATUS','ARY'],['SETTING','SIZE','600','300']],xs:['TITLE "Array Data"','ITEM INST HEALTH_STATUS ARY','SIZE 600 400','X_AXIS 10 10']},
+
+  // ---- Interactive
+  BUTTON:{cat:'Interactive',desc:'Runs JavaScript when clicked, e.g. api.cmd(...), screen.open(...). Newlines in the code become "+" continuations.',params:[r('Text','Send'),r('JavaScript',"api.cmd('INST ABORT')",'code')]},
+  CHECKBUTTON:{cat:'Interactive',desc:'Checkbox. Give it a widget name to read it from a BUTTON.',params:[r('Text','Option'),o('Initial','UNCHECKED','choice',{opts:['CHECKED','UNCHECKED']})]},
+  COMBOBOX:{cat:'Interactive',desc:'Drop-down list. Give it a widget name to read it from a BUTTON.',params:[{n:'Options (one per line)',k:'list',init:'OPTION1'}],init:{1:'OPTION2'}},
+  TEXTFIELD:{cat:'Interactive',desc:'Text input. Give it a widget name to read it from a BUTTON.',params:[o('Characters','12','num',{init:'12'}),o('Default text','','str')]},
+  RADIOGROUP:{cat:'Interactive',box:'v',desc:'Group of RADIOBUTTONs.',params:[o('Initial index','0')],kids:()=>[mk('RADIOBUTTON',['Option A']),mk('RADIOBUTTON',['Option B'])]},
+  RADIOBUTTON:{cat:'Interactive',desc:'One radio option. Only goes inside a RADIOGROUP.',params:[r('Text','Option')]},
+  DATE:{cat:'Interactive',desc:'Date picker.',params:[o('Label','Date','str')]},
+  TIME:{cat:'Interactive',desc:'Time picker.',params:[o('Label','Time','str')]},
+
+  // ---- Canvas (absolute positioning)
+  CANVAS:{cat:'Canvas',box:'canvas',desc:'Free-form drawing area. Drag the items inside it anywhere (hold Shift to snap to 10px).',params:[r('Width','400','num'),r('Height','300','num')],kids:()=>[mk('CANVASLABEL',['20','30','Canvas label','16','white'])]},
+  CANVASLABEL:{cat:'Canvas',cv:true,pos:[[0,1]],desc:'Text at X,Y (Y is the text baseline).',params:[r('X','20','num'),r('Y','30','num'),r('Text','Label'),o('Font size','12'),o('Color','black','color',{init:'white'})],xs:['RAW text-anchor middle']},
+  CANVASLABELVALUE:{cat:'Canvas',cv:true,pos:[[3,4]],desc:'Telemetry value at X,Y.',params:[...TLM,r('X','20','num'),r('Y','60','num'),o('Font size','12'),o('Color','black','color',{init:'white'}),vt('CONVERTED')],xs:['RAW text-anchor middle']},
+  CANVASLINE:{cat:'Canvas',cv:true,pos:[[0,1],[2,3]],desc:'Line from (X1,Y1) to (X2,Y2).',params:[r('X1','20','num'),r('Y1','100','num'),r('X2','160','num'),r('Y2','100','num'),o('Color','black','color',{init:'white'}),o('Width','1',undefined,{init:'2'})]},
+  CANVASLINEVALUE:{cat:'Canvas',cv:true,pos:[[3,4],[5,6]],desc:'Line colored by telemetry. Use SETTING VALUE_EQ <value> <color>.',params:[...TLM,r('X1','20','num'),r('Y1','130','num'),r('X2','160','num'),r('Y2','130','num'),o('Width','3'),vt('CONVERTED')],settings:[['SETTING','VALUE_EQ','0','RED'],['SETTING','VALUE_EQ','1','GREEN']],init:{2:'GROUND1STATUS'},xs:['VALUE_EQ 0 RED','VALUE_EQ 1 GREEN']},
+  CANVASDOT:{cat:'Canvas',cv:true,pos:[[0,1]],desc:'Filled circle at X,Y.',params:[r('X','60','num'),r('Y','180','num'),o('Color','black','color',{init:'#4da3ff'}),o('Radius','3',undefined,{init:'8'})]},
+  CANVASIMAGE:{cat:'Canvas',cv:true,pos:[[1,2]],desc:'Image from the target\'s public folder.',params:[r('Image file','satellite.png'),r('X','200','num'),r('Y','40','num'),o('Width','100',undefined,{init:'100'}),o('Height','100',undefined,{init:'100'})],xs:['SCREEN INST HS']},
+  CANVASIMAGEVALUE:{cat:'Canvas',cv:true,pos:[[5,6]],desc:'Image chosen by telemetry value. Use SETTING IMAGE <value> <file> <x> <y>.',params:[...TLM,vt('CONVERTED'),r('Default image','default.png'),r('X','200','num'),r('Y','150','num'),o('Width','100'),o('Height','100')],init:{2:'GROUND1STATUS'},xs:['IMAGE CONNECTED "on.png" 200 150','IMAGE UNAVAILABLE "off.png" 200 150','SCREEN INST HS']},
+
+  // ---- Other
+  IFRAME:{cat:'Other',desc:'Embedded web page.',params:[r('URL','https://openc3.com'),o('Width','400',undefined,{init:'400'}),o('Height','300',undefined,{init:'300'})]},
+  ROLLUP:{cat:'Other',desc:'Status icon rolled up from several items (SETTING TLM ...). Clicking can open a screen.',params:[r('Icon','satellite-transmit'),o('Label','','str',{init:'Rollup'}),o('Secondary label','','str')],settings:[['SETTING','TLM','INST','HEALTH_STATUS','TEMP1']],xs:['TLM INST HEALTH_STATUS TEMP1','SCREEN INST HS']},
+  SIGNAL:{cat:'Other',grp:'tlm',desc:'Signal-strength bars.',params:[...TLM],settings:[['SETTING','VALUES','-50','0','50']],xs:['VALUES -50 0 50','SCREEN INST HS']},
+  FILEDISPLAY:{cat:'Other',desc:'Shows the contents of a target file.',params:[r('File path','INST/target.txt'),o('Width','500'),o('Height','300')]},
+};
+// Apply sparse init overrides like {3:'ARY'} (index is into params)
+for (const d of Object.values(DEFS)) if (d.init) for (const [i,v] of Object.entries(d.init)) { if (d.params[i]) d.params[i] = {...d.params[i], init:v}; }
+const CATS = ['Layout','Decoration','Telemetry','Graphs','Interactive','Canvas','Other'];
+const LAYOUT_WRAPS = ['VERTICAL','HORIZONTAL','VERTICALBOX','HORIZONTALBOX','MATRIXBYCOLUMNS','SCROLLWINDOW'];
+
+/* =====================================================================
+   Model
+   ===================================================================== */
+const $ = s => document.querySelector(s);
+const uid = () => 'n' + Math.random().toString(36).slice(2, 10);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function mk(type, params, fresh = !params) {
+  const d = DEFS[type];
+  const n = {id: uid(), type, params: params ? params.slice() : [], settings: []};
+  if (fresh && d) {
+    const li = d.params.findIndex(p => p.k === 'list');
+    n.params = d.params.map(p => p.init ?? '');
+    if (li >= 0 && d.init) n.params.push(...Object.entries(d.init).filter(([i]) => +i > li).map(([,v]) => v));
+    if (d.settings) n.settings = d.settings.map(s => ({kw: s[0], args: s.slice(1)}));
+  }
+  if (d && d.box) n.children = fresh && d.kids ? d.kids() : [];
+  return n;
+}
+function newScreen() {
+  return {width:'AUTO', height:'AUTO', period:'1.0', stale:'', target:'INST', name:'my_screen', globals:[],
+          root:{id:'root', type:'ROOT', params:[], settings:[], children:[]}};
+}
+let scr = newScreen();
+const state = {sel:null, activeTab:{}, clip:null, guides:true, codeDirty:false};
+
+function find(id, n = scr.root, path = []) {
+  if (!n.children) return null;
+  for (let i = 0; i < n.children.length; i++) {
+    const c = n.children[i];
+    if (c.id === id) return {node:c, parent:n, index:i, path:[...path, n]};
+    if (c.children) { const f = find(id, c, [...path, n]); if (f) return f; }
+  }
+  return null;
+}
+const nodeById = id => id === 'root' ? scr.root : find(id)?.node;
+function isInside(ancId, id) { // is `id` the node `ancId` or one of its descendants?
+  if (ancId === id) return true;
+  const a = nodeById(ancId);
+  return !!(a && a.children && find(id, a));
+}
+function walk(n, fn) { fn(n); (n.children || []).forEach(c => walk(c, fn)); }
+function accepts(pt, ct) {
+  if (ct === 'RAWLINE') return true;
+  const cd = DEFS[ct] || {};
+  if (pt === 'TABBOOK') return ct === 'TABITEM';
+  if (pt === 'RADIOGROUP') return ct === 'RADIOBUTTON';
+  if (pt === 'CANVAS') return !!cd.cv;
+  if (ct === 'TABITEM' || ct === 'RADIOBUTTON' || cd.cv) return false;
+  return true;
+}
+function reid(n) { n.id = uid(); (n.children || []).forEach(reid); return n; }
+const cloneNode = n => reid(JSON.parse(JSON.stringify(n)));
+
+/* ---------- history ---------- */
+let hist = [], fut = [];
+function snapshot() { pendingSnap = null; hist.push(JSON.stringify(scr)); if (hist.length > 300) hist.shift(); fut = []; updateUndo(); }
+function undo() { if (!hist.length) return; fut.push(JSON.stringify(scr)); scr = JSON.parse(hist.pop()); afterLoad(); }
+function redo() { if (!fut.length) return; hist.push(JSON.stringify(scr)); scr = JSON.parse(fut.pop()); afterLoad(); }
+function updateUndo() { $('#bUndo').disabled = !hist.length; $('#bRedo').disabled = !fut.length; }
+function afterLoad() { if (state.sel && !find(state.sel)) state.sel = null; state.codeDirty = false; renderAll(); }
+
+/* =====================================================================
+   Text format: tokenize / quote / parse / generate
+   ===================================================================== */
+function tokenize(line, comments = true) {
+  const out = []; let i = 0; const n = line.length;
+  while (i < n) {
+    const c = line[i];
+    if (c === ' ' || c === '\t') { i++; continue; }
+    if (c === '#' && comments) break;               // comment (only at a token boundary)
+    if (c === '"' || c === "'") {
+      const j = line.indexOf(c, i + 1), end = j < 0 ? n : j;
+      out.push({v: line.slice(i + 1, end), q: c}); i = end + 1; continue;
+    }
+    let j = i, s = '';
+    while (j < n && line[j] !== ' ' && line[j] !== '\t') {
+      if (line.startsWith('<%', j)) { const e = line.indexOf('%>', j); const end = e < 0 ? n : e + 2; s += line.slice(j, end); j = end; }
+      else s += line[j++];
+    }
+    out.push({v: s, q: null}); i = j;
+  }
+  return out;
+}
+function q(s) {
+  s = String(s);
+  if (s === '') return '""';
+  const bare = s.replace(/<%.*?%>/g, '');
+  if (!/[\s"']/.test(bare) && !bare.startsWith('#')) return s;
+  return (s.includes('"') && !s.includes("'")) ? `'${s}'` : `"${s}"`;
+}
+function fmtArgs(args, ind) {
+  return args.map(a => {
+    a = String(a);
+    if (!a.includes('\n')) return q(a);
+    const parts = a.split('\n'), qc = parts.some(p => p.includes('"')) ? "'" : '"';
+    return parts.map(p => qc + p + qc).join(' +\n' + ind + '    ');
+  }).join(' ');
+}
+function genParams(n) {
+  const d = DEFS[n.type], p = n.params.map(v => v ?? '');
+  if (!d) { while (p.length && p[p.length-1] === '') p.pop(); return p; }
+  const li = d.params.findIndex(x => x.k === 'list');
+  let fixed = li >= 0 ? p.slice(0, li) : p.slice();
+  const rest = li >= 0 ? p.slice(li).filter(v => v !== '') : [];
+  const required = d.params.reduce((m, x, i) => (!x.opt && x.k !== 'list') ? i + 1 : m, 0);
+  while (fixed.length > required && fixed[fixed.length-1] === '') fixed.pop();
+  if (rest.length) while (fixed.length < li) fixed.push('');
+  while (fixed.length < required) fixed.push('');
+  fixed = fixed.map((v, i) => (v === '' && d.params[i] && d.params[i].opt) ? (d.params[i].fill ?? 'nil') : v);
+  return fixed.concat(rest);
+}
+function generate() {
+  const L = [`SCREEN ${scr.width || 'AUTO'} ${scr.height || 'AUTO'} ${scr.period || '1.0'}`];
+  if (scr.stale) L.push(`STALE_TIME ${scr.stale}`);
+  for (const g of scr.globals) L.push(g.kw + (g.args.length ? ' ' + fmtArgs(g.args, '') : ''));
+  L.push('');
+  for (const c of scr.root.children) emit(c, 0, L);
+  return L.join('\n') + '\n';
+}
+function emit(n, depth, L) {
+  const ind = '  '.repeat(depth);
+  if (n.type === 'RAWLINE') { L.push(ind + n.text); return; }
+  const head = n.name ? `NAMED_WIDGET ${q(n.name)} ${n.type}` : n.type;
+  const args = genParams(n);
+  L.push(ind + head + (args.length ? ' ' + fmtArgs(args, ind) : ''));
+  for (const s of n.settings) L.push(ind + '  ' + s.kw + (s.args.length ? ' ' + fmtArgs(s.args, ind + '  ') : ''));
+  if (n.children) { for (const c of n.children) emit(c, depth + 1, L); L.push(ind + 'END'); }
+}
+
+const BUILTIN_CONTAINERS = new Set(Object.keys(DEFS).filter(k => DEFS[k].box));
+function parse(text) {
+  const s = newScreen(); s.target = scr.target; s.name = scr.name;
+  const warn = []; const unknown = new Set();
+  const stack = [s.root]; let last = null, pending = null, sawScreen = false;
+  const lines = text.split(/\r?\n/);
+  const raw = t => stack[stack.length-1].children.push({id:uid(), type:'RAWLINE', text:t, params:[], settings:[]});
+  lines.forEach((line, ln) => {
+    const t = line.trim();
+    let toks;
+    if (pending) {
+      if (!t || t.startsWith('#')) return;
+      toks = tokenize(t);
+      if (pending.mode === '&') toks = pending.toks.concat(toks);
+      else {
+        const lastTok = pending.toks[pending.toks.length-1], first = toks.shift();
+        if (lastTok && first) lastTok.v += (pending.mode === '+' ? '\n' : '') + first.v;
+        toks = pending.toks.concat(toks);
+      }
+      pending = null;
+    } else {
+      if (!t) return;
+      if (t.startsWith('#') || t.startsWith('<%')) { raw(t); return; }
+      toks = tokenize(t);
+    }
+    const lt = toks[toks.length-1];
+    if (lt && !lt.q && ['&','+','\\'].includes(lt.v)) { toks.pop(); pending = {toks, mode: lt.v}; return; }
+    if (!toks.length) return;
+    let kw = toks[0].v.toUpperCase(); let args = toks.slice(1).map(x => x.v);
+    switch (kw) {
+      case 'SCREEN': sawScreen = true; s.width = args[0] || 'AUTO'; s.height = args[1] || 'AUTO'; s.period = args[2] || '1.0'; return;
+      case 'END':
+        if (stack.length > 1) last = stack.pop(); else warn.push(`line ${ln+1}: END without a matching container`);
+        return;
+      case 'STALE_TIME': s.stale = args[0] || ''; return;
+      case 'GLOBAL_SETTING': case 'GLOBAL_SUBSETTING': s.globals.push({kw, args}); return;
+      case 'SETTING': case 'SUBSETTING': case 'TOOLTIP':
+        if (last) last.settings.push({kw, args}); else warn.push(`line ${ln+1}: ${kw} before any widget (dropped)`);
+        return;
+    }
+    let name;
+    if (kw === 'NAMED_WIDGET') { name = args[0]; kw = (args[1] || '').toUpperCase(); args = args.slice(2); }
+    if (!kw) { warn.push(`line ${ln+1}: NAMED_WIDGET is missing a widget type`); return; }
+    const node = mk(kw, args, false);
+    if (name) node.name = name;
+    if (!DEFS[kw]) unknown.add(kw);
+    const parent = stack[stack.length-1];
+    if (!accepts(parent.type === 'ROOT' ? 'ROOT' : parent.type, kw)) warn.push(`line ${ln+1}: ${kw} is not normally allowed inside ${parent.type === 'ROOT' ? 'the screen' : parent.type}`);
+    parent.children.push(node);
+    last = node;
+    if (BUILTIN_CONTAINERS.has(kw)) stack.push(node);
+  });
+  if (stack.length > 1) warn.push(`${stack.length - 1} container(s) missing END`);
+  if (!sawScreen) warn.push('no SCREEN line found; defaults used');
+  if (unknown.size) warn.push(`custom/unknown widgets kept as-is: ${[...unknown].join(', ')}`);
+  return {screen: s, warn};
+}
+
+/* =====================================================================
+   Preview rendering
+   ===================================================================== */
+const pv = (n, i, f = '') => { const v = n.params[i]; return (v == null || v === '' || String(v).toLowerCase() === 'nil') ? f : v; };
+function hashf(s) { let h = 2166136261; for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return (h >>> 0) / 4294967296; }
+const fake = n => hashf(n.params.slice(0, 3).join(' '));
+function fval(n, vti) {
+  const t = String(pv(n, vti, '')).toUpperCase(), f = fake(n);
+  return t === 'RAW' ? String(Math.round(f * 4095)) : (f * 120 - 40).toFixed(3);
+}
+const num = (v, d) => { const x = parseFloat(v); return isFinite(x) ? x : d; };
+const itm = n => esc(pv(n, 2, 'ITEM'));
+const vb = (n, vti, chi, text) => `<span class="vb" style="width:${(num(pv(n, chi, 12), 12) * 0.62 + 1).toFixed(1)}em">${esc(text ?? fval(n, vti))}</span>`;
+const lbar = (f, w, h, vert) => `<span class="lbar${vert ? ' vert' : ''}" style="width:${w}px;height:${h}px"><span class="m" style="${vert ? 'bottom' : 'left'}:${(f * 80 + 10).toFixed(1)}%"></span></span>`;
+const rbar = (f, w, h) => `<span class="rbar" style="width:${w}px;height:${h}px"><span class="m" style="left:${(f * 100).toFixed(1)}%"></span></span>`;
+const pbar = (f, w) => `<span class="pbar" style="width:${w}px"><i style="width:${Math.round(f * 100)}%"></i></span>`;
+function ledColor(n) {
+  const s = n.settings.find(s => s.kw === 'SETTING' && /^LED_COLOR$/i.test(s.args[0]));
+  return s ? colorOf(s.args.slice(2)) : '#56f000';
+}
+const led = (n, w, h) => `<span class="led" style="width:${w}px;height:${h}px;background:${esc(ledColor(n))}"></span>`;
+function spark(seed, w, h, label) {
+  const pts = []; for (let i = 0; i <= 40; i++) pts.push(`${(i / 40 * 100).toFixed(1)},${(20 - 12 * Math.sin(i / 4 + seed * 9) - 4 * Math.sin(i / 1.7 + seed * 3)).toFixed(1)}`);
+  return `<span class="graph" style="width:${w}px;height:${h}px">${label ? `<span class="gl">${esc(label)}</span>` : ''}<svg viewBox="0 0 100 40" preserveAspectRatio="none" style="width:100%;height:100%;display:block"><polyline points="${pts.join(' ')}" fill="none" stroke="#5fa8f0" stroke-width="1.2" vector-effect="non-scaling-stroke"/></svg></span>`;
+}
+function sizeSetting(n, w, h) {
+  const s = [...n.settings].reverse().find(s => s.kw === 'SETTING' && /^SIZE$/i.test(s.args[0]));
+  return s ? [num(s.args[1], w), num(s.args[2], h)] : [w, h];
+}
+function cfmt(fmt, x) {
+  return String(fmt).replace(/%(-?0?)(\d*)(?:\.(\d+))?([dixXfeEsg%])/g, (m, fl, w, pr, c) => {
+    let s;
+    switch (c) {
+      case '%': return '%';
+      case 'd': case 'i': s = String(Math.round(x)); break;
+      case 'x': s = Math.abs(Math.round(x)).toString(16); break;
+      case 'X': s = Math.abs(Math.round(x)).toString(16).toUpperCase(); break;
+      case 'f': s = x.toFixed(pr ? +pr : 6); break;
+      case 'e': case 'E': s = x.toExponential(pr ? +pr : 6); if (c === 'E') s = s.toUpperCase(); break;
+      default: s = String(x);
+    }
+    const wd = +w || 0;
+    return s.length < wd ? s.padStart(wd, fl.includes('0') ? '0' : ' ') : s;
+  });
+}
+const lab = n => `<span class="lbl">${itm(n)}</span>`;
+
+const VIEWS = {
+  TITLE: n => `<div class="ttl">${esc(pv(n, 0))}</div>`,
+  LABEL: n => {
+    const st = [];
+    if (pv(n, 1)) st.push(`font-family:${esc(pv(n, 1))}`);
+    if (pv(n, 2)) st.push(`font-size:${num(pv(n, 2), 14)}pt`);
+    if (/^bold$/i.test(pv(n, 3))) st.push('font-weight:700');
+    if (/^true$/i.test(pv(n, 4))) st.push('font-style:italic');
+    return `<span class="lbl" style="${st.join(';')}">${esc(pv(n, 0)) || '&nbsp;'}</span>`;
+  },
+  SECTIONHEADER: n => `<div class="shdr">${esc(pv(n, 0))}</div>`,
+  HORIZONTALLINE: () => `<div class="hr"></div>`,
+  SPACER: n => `<span class="spacer" style="width:${num(pv(n, 0), 0)}px;height:${num(pv(n, 1), 0)}px"></span>`,
+  VALUE: n => vb(n, 3, 4),
+  LABELVALUE: n => lab(n) + vb(n, 3, 4),
+  LABELVALUEDESC: n => `<span class="lbl">${esc(pv(n, 3) || pv(n, 2, 'ITEM'))}</span>` + vb(n, 4, 5),
+  FORMATVALUE: n => vb(n, 4, 5, cfmt(pv(n, 3, '%s'), fake(n) * 4000)),
+  LABELVALUELIMITSBAR: n => lab(n) + vb(n, 3, 4) + lbar(fake(n), 160, 20),
+  LABELVALUELIMITSCOLUMN: n => lab(n) + vb(n, 3, 4) + lbar(fake(n), 20, 100, true),
+  VALUELIMITSBAR: n => vb(n, 3, 4) + lbar(fake(n), 160, 20),
+  VALUELIMITSCOLUMN: n => vb(n, 3, 4) + lbar(fake(n), 20, 100, true),
+  LIMITSBAR: n => lbar(fake(n), num(pv(n, 4), 160), num(pv(n, 5), 25)),
+  LIMITSCOLUMN: n => lbar(fake(n), num(pv(n, 4), 30), num(pv(n, 5), 100), true),
+  LIMITSCOLOR: n => {
+    const rr = num(pv(n, 4), 10), full = String(pv(n, 5, 'FALSE')).toUpperCase();
+    const label = full === 'TRUE' ? esc(n.params.slice(0, 3).join(' ')) : full === 'NIL' ? '' : itm(n);
+    return `<span class="led" style="width:${rr * 2}px;height:${rr * 2}px;background:#56f000"></span>${label ? `<span class="lbl">${label}</span>` : ''}`;
+  },
+  RANGEBAR: n => rbar(fake(n), num(pv(n, 6), 160), num(pv(n, 7), 25)),
+  VALUERANGEBAR: n => vb(n, 5, 6) + rbar(fake(n), num(pv(n, 7), 160), num(pv(n, 8), 25)),
+  LABELVALUERANGEBAR: n => lab(n) + vb(n, 5, 6) + rbar(fake(n), num(pv(n, 7), 160), num(pv(n, 8), 25)),
+  PROGRESSBAR: n => pbar(fake(n), num(pv(n, 4), 80)),
+  LABELPROGRESSBAR: n => lab(n) + pbar(fake(n), num(pv(n, 4), 80)),
+  LED: n => led(n, num(pv(n, 4), 15), num(pv(n, 5), 15)),
+  LABELLED: n => lab(n) + led(n, num(pv(n, 4), 15), num(pv(n, 5), 15)),
+  TEXTBOX: n => `<span class="panelbox" style="width:${num(pv(n, 3), 200)}px;height:${num(pv(n, 4), 200)}px">${itm(n)} text…</span>`,
+  ARRAY: n => {
+    const per = Math.max(1, num(pv(n, 6), 4)), cells = [];
+    for (let i = 0; i < per * 3; i++) cells.push((hashf(n.id + i) * 100).toFixed(1).padStart(6));
+    const rows = []; for (let i = 0; i < cells.length; i += per) rows.push(cells.slice(i, i + per).join(' '));
+    return `<span class="panelbox" style="width:${num(pv(n, 3), 200)}px;height:${num(pv(n, 4), 100)}px">${esc(rows.join('\n'))}</span>`;
+  },
+  BLOCK: n => {
+    const bpw = Math.max(1, num(pv(n, 6), 4)), wpr = Math.max(1, num(pv(n, 7), 4)), af = pv(n, 8), rows = [];
+    for (let rI = 0; rI < 4; rI++) {
+      const words = []; for (let w = 0; w < wpr; w++) { let s = ''; for (let b = 0; b < bpw; b++) s += cfmt(pv(n, 5, '%02X'), Math.floor(hashf(n.id + rI + w + b) * 256)); words.push(s); }
+      rows.push((af ? cfmt(af, rI * bpw * wpr) : '') + words.join(' '));
+    }
+    return `<span class="panelbox" style="width:${num(pv(n, 3), 200)}px;height:${num(pv(n, 4), 100)}px">${esc(rows.join('\n'))}</span>`;
+  },
+  IMAGEVIEWER: n => { const [w, h] = [num(pv(n, 4), 200), num(pv(n, 5), 150)]; return `<span class="ph" style="width:${w}px;height:${h}px">image<br>${itm(n)}</span>`; },
+  SPARKLINE: n => { const [w, h] = sizeSetting(n, 200, 50); return spark(fake(n), w, h); },
+  LABELSPARKLINE: n => { const [w, h] = sizeSetting(n, 200, 50); return lab(n) + vb(n, 3, 99, fval(n, 3)) + spark(fake(n), w, h); },
+  LINEGRAPH: n => { const [w, h] = sizeSetting(n, 400, 200); return spark(fake(n), w, h, n.params.slice(0, 3).join(' ')); },
+  ARRAYPLOT: n => {
+    const t = n.settings.find(s => /^TITLE$/i.test(s.args[0]));
+    const [w, h] = sizeSetting(n, 400, 250); return spark(0.4, w, h, t ? t.args[1] : 'Array Plot');
+  },
+  BUTTON: n => `<span class="btnp">${esc(pv(n, 0, 'Button'))}</span>`,
+  CHECKBUTTON: n => `<span class="chk${/^CHECKED$/i.test(pv(n, 1)) ? ' on' : ''}"></span><span class="lbl">${esc(pv(n, 0))}</span>`,
+  COMBOBOX: n => `<span class="tf" style="min-width:90px">${esc(pv(n, 0, ''))} ▾</span>`,
+  TEXTFIELD: n => `<span class="tf" style="width:${(num(pv(n, 0), 12) * 0.62 + 1).toFixed(1)}em">${esc(pv(n, 1))}</span>`,
+  RADIOBUTTON: n => `<span class="radio"></span><span class="lbl">${esc(pv(n, 0))}</span>`,
+  DATE: n => `<span class="lbl">${esc(pv(n, 0, 'Date'))}</span><span class="tf">yyyy-mm-dd</span>`,
+  TIME: n => `<span class="lbl">${esc(pv(n, 0, 'Time'))}</span><span class="tf">hh:mm:ss</span>`,
+  IFRAME: n => `<span class="ph" style="width:${num(pv(n, 1), 400)}px;height:${num(pv(n, 2), 300)}px">iframe<br>${esc(pv(n, 0))}</span>`,
+  ROLLUP: n => `<span class="ph" style="width:86px;height:70px;border-style:solid;flex-direction:column"><b style="color:#56f000">●</b>${esc(pv(n, 1, pv(n, 0)))}<small>${esc(pv(n, 2))}</small></span>`,
+  SIGNAL: n => `<span style="display:inline-flex;align-items:flex-end;gap:2px;height:20px">${[6, 10, 14, 18].map((h, i) => `<i style="width:4px;height:${h}px;background:${i < 3 ? '#56f000' : '#3d4b60'}"></i>`).join('')}</span>`,
+  FILEDISPLAY: n => `<span class="panelbox" style="width:${num(pv(n, 1), 500)}px;height:${num(pv(n, 2), 300)}px">${esc(pv(n, 0))}</span>`,
+};
+const JUSTIFIED = {LABELVALUE: 5, LABELLED: 6};
+
+function colorOf(vals) {
+  if (vals.length >= 3 && vals.slice(0, 3).every(v => /^\d+$/.test(v))) return `rgb(${vals.slice(0, 3).join(',')})`;
+  return vals[0] || '';
+}
+const px = v => /^-?\d+(\.\d+)?$/.test(v) ? v + 'px' : v;
+function styleOne(el, name, vals) {
+  if (!el) return;
+  const s = el.style;
+  switch (String(name).toUpperCase()) {
+    case 'WIDTH': s.width = px(vals[0]); s.flex = 'none'; break;
+    case 'HEIGHT': s.height = px(vals[0]); break;
+    case 'SIZE': s.width = px(vals[0]); s.height = px(vals[1]); break;
+    case 'MARGIN': s.margin = px(vals[0]); break;
+    case 'PADDING': s.padding = px(vals[0]); break;
+    case 'BACKCOLOR': s.background = colorOf(vals); break;
+    case 'TEXTCOLOR': s.color = colorOf(vals); break;
+    case 'BORDERCOLOR': s.border = '1px solid ' + colorOf(vals); break;
+    case 'TEXTALIGN': {
+      const a = String(vals[0] || '').toLowerCase(); s.textAlign = a;
+      s.justifyContent = a === 'center' ? 'center' : a === 'right' ? 'flex-end' : 'flex-start';
+      if (el.classList.contains('leaf')) el.querySelectorAll('.vb').forEach(x => x.style.textAlign = a);
+      break;
+    }
+    case 'RAW': if (vals[0]) s.setProperty(vals[0], vals.slice(1).join(' ')); break;
+  }
+}
+function effectiveSettings(n) {
+  const g = [];
+  for (const x of scr.globals) {
+    if (String(x.args[0]).toUpperCase() !== n.type) continue;
+    g.push({kw: x.kw === 'GLOBAL_SUBSETTING' ? 'SUBSETTING' : 'SETTING', args: x.args.slice(1)});
+  }
+  return g.concat(n.settings);
+}
+function applySettings(el, n, inner) {
+  for (const s of effectiveSettings(n)) {
+    if (s.kw === 'SETTING') styleOne(inner || el, s.args[0], s.args.slice(1));
+    else if (s.kw === 'SUBSETTING') {
+      const idx = parseInt(s.args[0], 10);
+      const kids = [...el.children].filter(c => !c.classList.contains('ctag'));
+      styleOne(kids[idx], s.args[1], s.args.slice(2));
+    } else if (s.kw === 'TOOLTIP') el.title = s.args[0] || '';
+  }
+}
+
+const stage = $('#stage');
+function renderStage() {
+  const keep = $('#stagewrap').scrollTop;
+  stage.innerHTML = '';
+  stage.classList.toggle('guides', state.guides);
+  const card = document.createElement('div'); card.className = 'screen';
+  const title = document.createElement('div'); title.className = 'screen-title';
+  title.innerHTML = `${esc(scr.target || 'TARGET')} ${esc(String(scr.name || 'screen').toUpperCase())}<span>${esc(scr.width)}×${esc(scr.height)} · ${esc(scr.period)}s</span>`;
+  const body = document.createElement('div'); body.className = 'screen-body';
+  if (/^\d+$/.test(scr.width)) body.style.width = scr.width + 'px';
+  if (/^\d+$/.test(scr.height)) body.style.height = scr.height + 'px';
+  body.append(renderKids(scr.root, 'v'));
+  card.append(title, body); stage.append(card);
+  drawCanvasSelection();
+  $('#stagewrap').scrollTop = keep;
+}
+function renderKids(n, orient) {
+  const k = document.createElement('div');
+  k.className = 'kids o-' + orient; k.dataset.cid = n.id; k.dataset.orient = orient;
+  let any = false;
+  for (const c of n.children) { const el = renderNode(c); if (el) { k.append(el); any = true; } }
+  if (!any) { const e = document.createElement('div'); e.className = 'empty'; e.textContent = n.id === 'root' ? 'Drag widgets here from the left' : 'Drop widgets here'; k.append(e); }
+  return k;
+}
+function renderNode(n) {
+  if (n.type === 'RAWLINE') return null;
+  const d = DEFS[n.type];
+  let el;
+  if (d && d.box) el = renderContainer(n, d);
+  else {
+    el = document.createElement('div');
+    el.className = 'w leaf c-' + n.type.toLowerCase();
+    el.innerHTML = VIEWS[n.type] ? VIEWS[n.type](n) : `<span class="gen">${esc(n.type)} ${esc(n.params.join(' '))}</span>`;
+    if (JUSTIFIED[n.type] != null) el.classList.add('j-' + String(pv(n, JUSTIFIED[n.type], 'SPLIT')).toLowerCase());
+    applySettings(el, n);
+  }
+  el.dataset.id = n.id;
+  el.draggable = true;
+  if (!el.title) el.title = (n.name ? n.name + ' · ' : '') + n.type;
+  if (state.sel === n.id) el.classList.add('sel');
+  return el;
+}
+function renderContainer(n, d) {
+  const el = document.createElement('div');
+  el.className = 'w cont c-' + n.type.toLowerCase() + (d.framed ? ' framed' : '');
+  const tag = document.createElement('span'); tag.className = 'ctag';
+  tag.textContent = n.type + (n.name ? ' ' + n.name : '') + (n.type === 'MATRIXBYCOLUMNS' ? ' ' + pv(n, 0, '?') : '');
+  el.append(tag);
+  if (d.box === 'tabs') {
+    el.dataset.tabbook = n.id;
+    const hdr = document.createElement('div'); hdr.className = 'kids tabhdrs';
+    hdr.dataset.cid = n.id; hdr.dataset.orient = 'h';
+    const tabs = n.children.filter(c => c.type === 'TABITEM');
+    let act = tabs.find(t => t.id === state.activeTab[n.id]) || tabs[0];
+    for (const t of tabs) {
+      const b = document.createElement('div');
+      b.className = 'tabh' + (t === act ? ' act' : '') + (state.sel === t.id ? ' sel' : '');
+      b.textContent = pv(t, 0, 'TAB'); b.dataset.id = t.id; b.dataset.tab = n.id; b.draggable = true;
+      hdr.append(b);
+    }
+    if (!tabs.length) { const e = document.createElement('div'); e.className = 'empty'; e.textContent = 'Drop TABITEMs here'; hdr.append(e); }
+    el.append(hdr);
+    if (act) {
+      const pane = renderNode(act); pane.classList.add('tabpane'); pane.classList.remove('sel'); pane.draggable = false;
+      el.append(pane);
+    }
+  } else if (d.box === 'canvas') {
+    el.append(renderCanvas(n));
+  } else {
+    if (d.framed) {
+      const t = document.createElement('div'); t.className = 'boxtitle'; t.textContent = pv(n, 0);
+      if (t.textContent) el.append(t);
+    }
+    const marginIdx = d.params.findIndex(p => p.n === 'Margin');
+    const kids = renderKids(n, d.box === 'h' ? 'h' : d.box === 'g' ? 'g' : 'v');
+    if (d.box === 'g') kids.style.gridTemplateColumns = `repeat(${Math.max(1, num(pv(n, 0), 1))}, auto)`;
+    if (marginIdx >= 0 && pv(n, marginIdx)) kids.style.gap = num(pv(n, marginIdx), 4) + 'px';
+    if (d.scroll) { kids.style.maxHeight = num(pv(n, 0), 200) + 'px'; kids.style.overflow = 'auto'; }
+    el.append(kids);
+  }
+  applySettings(el, n, d.box === 'canvas' ? el.querySelector('svg') : null);
+  return el;
+}
+
+const SVGNS = 'http://www.w3.org/2000/svg';
+function sv(tag, attrs, text) {
+  const e = document.createElementNS(SVGNS, tag);
+  for (const [k, v] of Object.entries(attrs)) if (v != null) e.setAttribute(k, v);
+  if (text != null) e.textContent = text;
+  return e;
+}
+function renderCanvas(n) {
+  const W = num(pv(n, 0), 400), H = num(pv(n, 1), 300);
+  const wrap = document.createElement('div');
+  wrap.className = 'kids canvaswrap'; wrap.dataset.cid = n.id; wrap.dataset.orient = 'c';
+  const svg = sv('svg', {class: 'cv', width: W, height: H, viewBox: `0 0 ${W} ${H}`});
+  for (const c of n.children) { const g = renderCanvasItem(c); if (g) svg.append(g); }
+  wrap.append(svg);
+  return wrap;
+}
+const cvColor = (v, dflt = '#e8eef5') => v || dflt;
+function renderCanvasItem(c) {
+  if (c.type === 'RAWLINE') return null;
+  const g = sv('g', {'data-id': c.id});
+  if (state.sel === c.id) g.classList.add('sel');
+  const P = (i, f) => num(pv(c, i), f);
+  switch (c.type) {
+    case 'CANVASLABEL':
+      g.append(sv('text', {x: P(0, 0), y: P(1, 0), 'font-size': P(3, 12), fill: cvColor(pv(c, 4))}, pv(c, 2))); break;
+    case 'CANVASLABELVALUE':
+      g.append(sv('text', {x: P(3, 0), y: P(4, 0), 'font-size': P(5, 12), fill: cvColor(pv(c, 6)), 'font-family': 'Roboto Mono, Menlo, monospace'}, fval(c, 7))); break;
+    case 'CANVASLINE': case 'CANVASLINEVALUE': {
+      const b = c.type === 'CANVASLINE' ? 0 : 3;
+      let col, w;
+      if (c.type === 'CANVASLINE') { col = cvColor(pv(c, 4)); w = P(5, 1); }
+      else { const s = c.settings.find(s => /^VALUE_EQ$/i.test(s.args[0])); col = s ? colorOf(s.args.slice(2)) : '#56f000'; w = P(7, 3); }
+      const a = {x1: P(b, 0), y1: P(b + 1, 0), x2: P(b + 2, 0), y2: P(b + 3, 0)};
+      g.append(sv('line', {...a, stroke: col, 'stroke-width': w}), sv('line', {...a, class: 'hit', 'stroke-width': Math.max(10, w + 6)}));
+      break;
+    }
+    case 'CANVASDOT':
+      g.append(sv('circle', {cx: P(0, 0), cy: P(1, 0), r: Math.max(1, P(3, 3)), fill: cvColor(pv(c, 2))})); break;
+    case 'CANVASIMAGE': case 'CANVASIMAGEVALUE': {
+      const [fi, xi] = c.type === 'CANVASIMAGE' ? [0, 1] : [4, 5];
+      const x = P(xi, 0), y = P(xi + 1, 0), w = P(xi + 2, 100), h = P(xi + 3, 100);
+      g.append(sv('rect', {x, y, width: w, height: h, fill: 'rgba(120,140,170,.12)', stroke: '#6d7d93', 'stroke-dasharray': '4 3'}),
+               sv('text', {x: x + w / 2, y: y + h / 2, 'text-anchor': 'middle', 'font-size': 11, fill: '#9fb0c5'}, pv(c, fi, 'image')));
+      break;
+    }
+    default:
+      g.append(sv('text', {x: 4, y: 14, 'font-size': 11, fill: '#f5c451'}, c.type));
+  }
+  for (const s of c.settings) {
+    if (s.kw === 'SETTING' && /^RAW$/i.test(s.args[0]) && s.args[1]) g.querySelectorAll('text').forEach(t => t.setAttribute(s.args[1], s.args.slice(2).join(' ')));
+  }
+  return g;
+}
+function drawCanvasSelection() {
+  const g = stage.querySelector('svg.cv g.sel');
+  if (!g) return;
+  try { const b = g.getBBox(); g.after(sv('rect', {class: 'selbox', x: b.x - 3, y: b.y - 3, width: b.width + 6, height: b.height + 6})); } catch (e) { /* not laid out */ }
+}
+
+/* =====================================================================
+   Outline
+   ===================================================================== */
+function summary(n) {
+  if (n.type === 'RAWLINE') return '';
+  const d = DEFS[n.type];
+  if (d && d.params[0] && d.params[0].k === 'tgt') return n.params.slice(1, 3).join(' ');
+  return n.params[0] ?? '';
+}
+function renderOutline() {
+  const box = $('#outline'); box.innerHTML = '';
+  const add = (n, depth) => {
+    const row = document.createElement('div');
+    row.className = 'orow' + (state.sel === n.id ? ' sel' : '') + (n.type === 'RAWLINE' ? ' raw' : '') + (n.type !== 'RAWLINE' && !DEFS[n.type] ? ' unk' : '');
+    row.style.paddingLeft = (6 + depth * 12) + 'px';
+    row.dataset.id = n.id; row.draggable = n.type !== 'RAWLINE';
+    if (n.type === 'RAWLINE') row.textContent = n.text;
+    else row.innerHTML = `<span class="t">${esc(n.name ? n.name + ':' + n.type : n.type)}</span><span class="s">${esc(summary(n))}</span>`;
+    box.append(row);
+    (n.children || []).forEach(c => add(c, depth + 1));
+  };
+  scr.root.children.forEach(c => add(c, 0));
+  if (!scr.root.children.length) box.innerHTML = '<div class="orow" style="cursor:default;color:var(--faint)">(empty)</div>';
+  const s = box.querySelector('.sel'); if (s) s.scrollIntoView({block: 'nearest'});
+}
+
+/* =====================================================================
+   Inspector
+   ===================================================================== */
+function h(tag, props, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})) {
+    if (v == null) continue;
+    if (k === 'class') e.className = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else if (k === 'value' || k === 'checked' || k === 'disabled') e[k] = v;
+    else e.setAttribute(k, v);
+  }
+  for (const c of kids.flat()) if (c != null && c !== false) e.append(c.nodeType ? c : String(c));
+  return e;
+}
+function selectEl(opts, value, onchange) {
+  const s = h('select', {onchange: e => onchange(e.target.value)});
+  for (const o of opts) { const [v, l] = Array.isArray(o) ? o : [o, o]; s.append(h('option', {value: v}, l)); }
+  if (value != null && ![...s.options].some(x => x.value === value)) s.append(h('option', {value}, value));
+  s.value = value ?? '';
+  return s;
+}
+let pendingSnap = null;
+$('#insp').addEventListener('focusin', () => { pendingSnap = JSON.stringify(scr); });
+function beforeEdit() { if (pendingSnap) { hist.push(pendingSnap); fut = []; pendingSnap = null; updateUndo(); } }
+function edited() { beforeEdit(); renderStage(); renderOutline(); renderCode(); save(); }
+
+function refreshDatalists() {
+  const sets = {tgt: new Set(['INST', 'INST2', 'SYSTEM']), pkt: new Set(['HEALTH_STATUS', 'ADCS', 'PARAMS', 'IMAGE', 'MECH']), item: new Set(['TEMP1', 'TEMP2', 'TEMP3', 'TEMP4', 'COLLECTS', 'COLLECT_TYPE', 'DURATION', 'GROUND1STATUS', 'GROUND2STATUS', 'PACKET_TIMEFORMATTED'])};
+  walk(scr.root, n => { const d = DEFS[n.type]; if (d) d.params.forEach((p, i) => { if (sets[p.k] && n.params[i]) sets[p.k].add(n.params[i]); }); });
+  for (const k of ['tgt', 'pkt', 'item']) $('#dl-' + k).innerHTML = [...sets[k]].sort().map(v => `<option value="${esc(v)}">`).join('');
+  $('#dl-color').innerHTML = ['white', 'black', 'grey', 'red', 'green', 'blue', 'yellow', 'orange', '#4da3ff', ...[1, 2, 3, 4, 5, 6, 7, 8].map(i => `var(--color-data-visualization-${i})`)].map(v => `<option value="${esc(v)}">`).join('');
+}
+
+function paramField(n, p, i) {
+  const val = n.params[i] ?? '';
+  const set = v => { while (n.params.length < i) n.params.push(''); n.params[i] = v; edited(); };
+  let input;
+  if (p.k === 'choice') {
+    input = selectEl([['', p.opt ? `(default${p.fill && p.fill !== 'nil' ? ': ' + p.fill : ''})` : '—'], ...p.opts], val, set);
+  } else if (p.k === 'code') {
+    input = h('textarea', {rows: 4, value: val, oninput: e => set(e.target.value)});
+  } else {
+    input = h('input', {value: val, placeholder: p.opt ? (p.fill && p.fill !== 'nil' ? 'default: ' + p.fill : 'optional') : '',
+      list: {tgt: 'dl-tgt', pkt: 'dl-pkt', item: 'dl-item', color: 'dl-color'}[p.k],
+      inputmode: p.k === 'num' ? 'decimal' : null,
+      oninput: e => { e.target.classList.toggle('bad', !p.opt && !e.target.value); set(e.target.value); }});
+    if (!p.opt && !val) input.classList.add('bad');
+  }
+  return h('label', {class: 'fld'}, h('span', null, p.n, !p.opt ? h('b', null, ' *') : null), input);
+}
+function listField(n, p, i) {
+  const vals = n.params.slice(i);
+  return h('label', {class: 'fld'}, h('span', null, p.n),
+    h('textarea', {rows: 4, value: vals.join('\n'), oninput: e => { n.params = n.params.slice(0, i).concat(e.target.value.split('\n')); edited(); }}));
+}
+function argsInput(args, onset) {
+  return h('input', {value: args.map(q).join(' '), spellcheck: 'false', oninput: e => { onset(tokenize(e.target.value, false).map(t => t.v)); edited(); }});
+}
+function settingsSection(n, d) {
+  const presets = [...COMMON_SETTINGS.map(s => 'SETTING ' + s), ...((d && d.xs) || []).map(s => 'SETTING ' + s), 'SUBSETTING 1 WIDTH 130', 'TOOLTIP "Help text"'];
+  const add = selectEl([['', '+ Add…'], ...presets], '', v => {
+    if (!v) return;
+    snapshot();
+    const t = tokenize(v).map(x => x.v);
+    n.settings.push({kw: t[0], args: t.slice(1)});
+    edited(); renderInspector();
+  });
+  const sec = h('div', {class: 'sec'}, h('div', {class: 'sech'}, 'Settings', add));
+  if (!n.settings.length) sec.append(h('div', {class: 'hint', style: 'color:var(--faint);font-size:12px'}, 'None. Settings control size, colors, tooltips and widget-specific options.'));
+  n.settings.forEach((s, idx) => {
+    sec.append(h('div', {class: 'srow'},
+      selectEl(['SETTING', 'SUBSETTING', 'TOOLTIP'], s.kw, v => { beforeEdit(); s.kw = v; edited(); }),
+      argsInput(s.args, a => { s.args = a; }),
+      h('button', {title: 'Remove', onclick: () => { snapshot(); n.settings.splice(idx, 1); edited(); renderInspector(); }}, '×')));
+  });
+  return sec;
+}
+
+function renderInspector() {
+  refreshDatalists();
+  const box = $('#insp'); box.innerHTML = '';
+  const f = state.sel && find(state.sel);
+  if (!f) { box.append(...screenPanel()); return; }
+  const n = f.node, d = DEFS[n.type];
+
+  if (n.type === 'RAWLINE') {
+    box.append(h('div', {class: 'itype'}, 'Comment / raw line'),
+      h('p', {class: 'idesc'}, 'Copied through to the output unchanged (comments and ERB like <%= render %>).'),
+      h('label', {class: 'fld'}, h('span', null, 'Text'), h('textarea', {rows: 3, value: n.text, oninput: e => { n.text = e.target.value; edited(); }})),
+      actions(f));
+    return;
+  }
+
+  box.append(h('div', {class: 'icat'}, d ? d.cat : 'Custom / unknown widget'),
+    h('div', {class: 'itype'}, n.type),
+    d ? h('p', {class: 'idesc'}, d.desc) : h('div', {class: 'note warn'}, 'This builder doesn\'t know this widget (it may be a custom plugin widget). Its parameters are kept exactly as written.'));
+
+  // Convert to similar widget
+  if (d && d.grp && !d.cv) {
+    const same = Object.keys(DEFS).filter(k => DEFS[k].grp === d.grp);
+    box.append(h('label', {class: 'fld', style: 'margin-top:10px'}, h('span', null, 'Widget type'),
+      selectEl(same, n.type, v => { snapshot(); convert(n, v); edited(); renderInspector(); })));
+  }
+
+  const ps = h('div', {class: 'sec'}, h('div', {class: 'sech'}, 'Parameters'));
+  if (d) {
+    d.params.forEach((p, i) => ps.append(p.k === 'list' ? listField(n, p, i) : paramField(n, p, i)));
+    const hasList = d.params.some(p => p.k === 'list');
+    if (!hasList && n.params.length > d.params.length) {
+      ps.append(h('label', {class: 'fld'}, h('span', null, 'Extra parameters'),
+        argsInput(n.params.slice(d.params.length), a => { n.params = n.params.slice(0, d.params.length).concat(a); })));
+    }
+    if (!d.params.length) ps.append(h('div', {class: 'hint', style: 'color:var(--faint);font-size:12px'}, 'No parameters.'));
+  } else {
+    ps.append(h('label', {class: 'fld'}, h('span', null, 'Parameters (space separated)'), argsInput(n.params, a => { n.params = a; })));
+  }
+  ps.append(h('label', {class: 'fld'}, h('span', null, 'Widget name (NAMED_WIDGET, optional)'),
+    h('input', {value: n.name || '', placeholder: 'e.g. COLLECT_TYPE', oninput: e => { n.name = e.target.value.trim() || undefined; edited(); }}),
+    h('div', {class: 'hint'}, 'Lets BUTTON code read it via screen.getNamedWidget(\'NAME\').')));
+  box.append(ps, settingsSection(n, d), actions(f));
+}
+
+function actions(f) {
+  const n = f.node, d = DEFS[n.type] || {};
+  const sec = h('div', {class: 'sec'}, h('div', {class: 'sech'}, 'Arrange'));
+  const acts = h('div', {class: 'acts'},
+    h('button', {class: 'btn sm', title: 'Alt+↑', onclick: () => moveBy(-1), disabled: f.index === 0}, '↑ Up'),
+    h('button', {class: 'btn sm', title: 'Alt+↓', onclick: () => moveBy(1), disabled: f.index === f.parent.children.length - 1}, '↓ Down'),
+    h('button', {class: 'btn sm', onclick: () => select(f.parent.id === 'root' ? null : f.parent.id), disabled: f.parent.id === 'root'}, 'Select parent'),
+    h('button', {class: 'btn sm', title: 'Ctrl/Cmd+D', onclick: duplicate}, 'Duplicate'),
+    h('button', {class: 'btn sm danger', title: 'Delete', onclick: del}, 'Delete'));
+  sec.append(acts);
+  if (n.type !== 'RAWLINE' && !d.cv && n.type !== 'TABITEM' && n.type !== 'RADIOBUTTON') {
+    sec.append(h('div', {class: 'acts', style: 'margin-top:6px'},
+      selectEl([['', 'Wrap in…'], ...LAYOUT_WRAPS], '', v => v && wrap(v)),
+      n.children && accepts(f.parent.type, '_any') ? h('button', {class: 'btn sm', onclick: unwrap, title: 'Replace this container with its contents'}, 'Unwrap') : null));
+  }
+  if (d.cv) sec.append(h('div', {class: 'hint', style: 'margin-top:8px;font-size:12px;color:var(--faint)'}, 'Drag on the canvas to move. Arrow keys nudge 1px (Shift = 10px).'));
+  return sec;
+}
+
+function screenPanel() {
+  const fld = (label, key, hint, ph) => h('label', {class: 'fld'}, h('span', null, label),
+    h('input', {value: scr[key] ?? '', placeholder: ph || '', oninput: e => { scr[key] = e.target.value.trim(); edited(); }}),
+    hint ? h('div', {class: 'hint'}, hint) : null);
+  const g = h('div', {class: 'sec'}, h('div', {class: 'sech'}, 'Global settings',
+    selectEl([['', '+ Add…'], 'GLOBAL_SETTING LABELVALUE TEXTCOLOR "#bababa"', 'GLOBAL_SETTING LABELVALUELIMITSBAR COLORBLIND TRUE', 'GLOBAL_SETTING BUTTON BACKCOLOR grey', 'GLOBAL_SUBSETTING LABELVALUELIMITSBAR 1 WIDTH 100'], '', v => {
+      if (!v) return; snapshot(); const t = tokenize(v).map(x => x.v); scr.globals.push({kw: t[0], args: t.slice(1)}); edited(); renderInspector();
+    })));
+  if (!scr.globals.length) g.append(h('div', {style: 'color:var(--faint);font-size:12px'}, 'Applies a setting to every widget of a type.'));
+  scr.globals.forEach((s, i) => g.append(h('div', {class: 'srow'},
+    selectEl(['GLOBAL_SETTING', 'GLOBAL_SUBSETTING'], s.kw, v => { beforeEdit(); s.kw = v; edited(); }),
+    argsInput(s.args, a => { s.args = a; }),
+    h('button', {onclick: () => { snapshot(); scr.globals.splice(i, 1); edited(); renderInspector(); }}, '×'))));
+  const tips = h('div', {class: 'sec'}, h('div', {class: 'sech'}, 'How to use'));
+  tips.innerHTML += `<ul class="tips">
+    <li><b>Drag</b> widgets from the left onto the screen, or <b>click</b> one to add it next to the selection.</li>
+    <li>COSMOS screens are laid out by nesting: use <b>HORIZONTAL</b> / <b>VERTICAL</b> / <b>…BOX</b> / <b>MATRIXBYCOLUMNS</b> to arrange things. Drag existing widgets to move them.</li>
+    <li>For pixel placement anywhere, use a <b>CANVAS</b> and drag its items freely.</li>
+    <li>Paste an existing screen into the text panel below and press <b>Apply</b> to edit it visually.</li>
+    <li>When done, <b>Copy screen text</b> and paste it into the COSMOS screen editor (Telemetry Viewer → edit screen) or your plugin's <code>targets/&lt;TGT&gt;/screens/*.txt</code>.</li>
+    <li>Keys: <kbd>Del</kbd> delete · <kbd>⌘/Ctrl Z</kbd> undo · <kbd>⌘/Ctrl D</kbd> duplicate · <kbd>⌘/Ctrl C/V</kbd> copy/paste widget · <kbd>Alt ↑↓</kbd> reorder · <kbd>Esc</kbd> deselect</li>
+  </ul>
+  <div class="note">The preview approximates the COSMOS look with fake values. Telemetry names aren't checked against your system.</div>`;
+  return [h('div', {class: 'icat'}, 'Screen'), h('div', {class: 'itype'}, 'Screen settings'),
+    h('p', {class: 'idesc'}, 'Click a widget to edit it. Click empty space to come back here.'),
+    h('div', {class: 'sec'}, h('div', {class: 'sech'}, 'SCREEN line'),
+      fld('Width', 'width', 'Pixels or AUTO', 'AUTO'), fld('Height', 'height', 'Pixels or AUTO', 'AUTO'),
+      fld('Polling period (seconds)', 'period', null, '1.0'), fld('Stale time (seconds, optional)', 'stale', 'Emits STALE_TIME when set', '')),
+    h('div', {class: 'sec'}, h('div', {class: 'sech'}, 'Preview only'),
+      fld('Target name', 'target', 'Shown in the preview title only'), fld('Screen name', 'name', 'Used for the download file name')),
+    g, tips];
+}
+
+/* =====================================================================
+   Operations
+   ===================================================================== */
+function convert(n, type) {
+  const od = DEFS[n.type], nd = DEFS[type], by = {};
+  od.params.forEach((p, i) => { if (n.params[i] !== undefined) by[p.n] = n.params[i]; });
+  n.params = nd.params.map(p => by[p.n] ?? (p.opt ? '' : p.init ?? ''));
+  n.type = type;
+  if (nd.settings && !n.settings.length) n.settings = nd.settings.map(s => ({kw: s[0], args: s.slice(1)}));
+}
+function insertAt(parent, idx, node) { parent.children.splice(idx, 0, node); }
+function placeNode(node) {
+  const t = node.type, s = state.sel && find(state.sel);
+  if (s) {
+    if (s.node.children && accepts(s.node.type, t)) { insertAt(s.node, s.node.children.length, node); return true; }
+    // Walk up: insert after the selected node (or its ancestor) in the first parent that accepts it
+    let child = s.node;
+    for (let i = s.path.length - 1; i >= 0; i--) {
+      const p = s.path[i];
+      if (accepts(p.type, t)) { insertAt(p, p.children.indexOf(child) + 1, node); return true; }
+      child = p;
+    }
+  }
+  if (accepts('ROOT', t)) { insertAt(scr.root, scr.root.children.length, node); return true; }
+  let host = null; walk(scr.root, x => { if (!host && x.children && x.id !== 'root' && accepts(x.type, t)) host = x; });
+  if (host) { insertAt(host, host.children.length, node); return true; }
+  const hostType = DEFS[t]?.cv ? 'CANVAS' : t === 'TABITEM' ? 'TABBOOK' : t === 'RADIOBUTTON' ? 'RADIOGROUP' : null;
+  if (hostType) { const hn = mk(hostType); hn.children = [node]; insertAt(scr.root, scr.root.children.length, hn); return true; }
+  return false;
+}
+function addWidget(type) {
+  snapshot();
+  const node = mk(type);
+  if (placeNode(node)) { select(node.id); renderCode(); save(); }
+}
+function moveBy(dir) {
+  const f = state.sel && find(state.sel); if (!f) return;
+  const j = f.index + dir; if (j < 0 || j >= f.parent.children.length) return;
+  snapshot();
+  f.parent.children.splice(f.index, 1); f.parent.children.splice(j, 0, f.node);
+  renderAll();
+}
+function duplicate() {
+  const f = state.sel && find(state.sel); if (!f) return;
+  snapshot();
+  const c = cloneNode(f.node);
+  nudgeCanvas(c, 10, 10);
+  insertAt(f.parent, f.index + 1, c); select(c.id); renderCode(); save();
+}
+function del() {
+  const f = state.sel && find(state.sel); if (!f) return;
+  snapshot();
+  f.parent.children.splice(f.index, 1);
+  const next = f.parent.children[f.index] || f.parent.children[f.index - 1];
+  state.sel = next ? next.id : (f.parent.id === 'root' ? null : f.parent.id);
+  renderAll();
+}
+function wrap(type) {
+  const f = state.sel && find(state.sel); if (!f) return;
+  if (!accepts(f.parent.type, type)) return toast(`${type} can't go inside ${f.parent.type}`);
+  snapshot();
+  const w = mk(type); w.children = [f.node];
+  f.parent.children.splice(f.index, 1, w);
+  select(w.id); renderCode(); save();
+}
+function unwrap() {
+  const f = state.sel && find(state.sel); if (!f || !f.node.children) return;
+  if (!f.node.children.every(c => accepts(f.parent.type, c.type))) return toast('The parent can\'t hold these children');
+  snapshot();
+  f.parent.children.splice(f.index, 1, ...f.node.children);
+  state.sel = f.node.children[0]?.id || null; renderAll();
+}
+function nudgeCanvas(n, dx, dy) {
+  const d = DEFS[n.type]; if (!d || !d.pos) return;
+  for (const [xi, yi] of d.pos) { n.params[xi] = String(Math.round(num(n.params[xi], 0) + dx)); n.params[yi] = String(Math.round(num(n.params[yi], 0) + dy)); }
+}
+function setCanvasPos(n, x, y) {
+  const d = DEFS[n.type]; if (!d || !d.pos) return;
+  const [xi, yi] = d.pos[0];
+  nudgeCanvas(n, x - num(n.params[xi], 0), y - num(n.params[yi], 0));
+}
+function copySel() { const f = state.sel && find(state.sel); if (f) { state.clip = JSON.stringify(f.node); toast('Widget copied'); } }
+function pasteClip() {
+  if (!state.clip) return;
+  snapshot();
+  const node = reid(JSON.parse(state.clip));
+  nudgeCanvas(node, 10, 10);
+  if (placeNode(node)) { select(node.id); renderCode(); save(); }
+}
+
+/* =====================================================================
+   Selection, rendering, persistence
+   ===================================================================== */
+function select(id) {
+  state.sel = id;
+  if (id) {
+    const f = find(id);
+    if (f) { // make sure enclosing tabs are visible
+      const chain = [...f.path, f.node];
+      for (let i = 1; i < chain.length; i++) if (chain[i].type === 'TABITEM' && chain[i - 1].type === 'TABBOOK') state.activeTab[chain[i - 1].id] = chain[i].id;
+    }
+  }
+  renderStage(); renderOutline(); renderInspector();
+}
+function renderCode() {
+  if (state.codeDirty) return;
+  $('#code').value = generate();
+  setStatus('', '');
+}
+function setStatus(msg, cls) {
+  const s = $('#codestatus'); s.textContent = msg; s.className = cls || '';
+  $('#bApply').disabled = $('#bRevert').disabled = !state.codeDirty;
+}
+function renderAll() { renderStage(); renderOutline(); renderInspector(); renderCode(); updateUndo(); save(); }
+const KEY = 'cosmos-screen-builder-v1';
+function save() { try { localStorage.setItem(KEY, JSON.stringify({scr, guides: state.guides})); } catch (e) { /* storage unavailable */ } }
+let toastT;
+function toast(m) { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2200); }
+
+/* =====================================================================
+   Palette
+   ===================================================================== */
+function renderPalette() {
+  const f = $('#search').value.trim().toUpperCase();
+  const box = $('#palette'); box.innerHTML = '';
+  for (const cat of CATS) {
+    const items = Object.keys(DEFS).filter(k => DEFS[k].cat === cat && (!f || k.includes(f) || DEFS[k].desc.toUpperCase().includes(f)));
+    if (!items.length) continue;
+    box.append(h('div', {class: 'pcat'}, cat));
+    for (const k of items) box.append(h('div', {class: 'pi', draggable: 'true', 'data-type': k, title: DEFS[k].desc + '\n\nDrag onto the screen, or click to add.'}, k));
+  }
+}
+$('#search').addEventListener('input', renderPalette);
+$('#palette').addEventListener('click', e => { const p = e.target.closest('.pi'); if (p) addWidget(p.dataset.type); });
+$('#palette').addEventListener('dragstart', e => {
+  const p = e.target.closest('.pi'); if (!p) return;
+  drag = {kind: 'new', type: p.dataset.type};
+  e.dataTransfer.effectAllowed = 'copy'; e.dataTransfer.setData('text/plain', p.dataset.type);
+});
+$('#outline').addEventListener('click', e => { const r = e.target.closest('.orow'); if (r && r.dataset.id) select(r.dataset.id); });
+$('#outline').addEventListener('dragstart', e => {
+  const r = e.target.closest('.orow'); if (!r || !r.dataset.id) return;
+  drag = {kind: 'move', id: r.dataset.id}; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', r.dataset.id);
+});
+
+/* =====================================================================
+   Drag & drop on the stage
+   ===================================================================== */
+let drag = null, cvDrag = null;
+const dropline = $('#dropline');
+stage.addEventListener('dragstart', e => {
+  if (cvDrag) { e.preventDefault(); return; }
+  const el = e.target.closest && e.target.closest('[data-id]');
+  if (!el) return;
+  drag = {kind: 'move', id: el.dataset.id};
+  e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', el.dataset.id);
+  e.stopPropagation();
+});
+function dragType() { return drag.kind === 'new' ? drag.type : find(drag.id)?.node.type; }
+function resolveKids(el) {
+  if (!el) return null;
+  if (el.dataset.tabbook) return el.querySelector(':scope > .tabhdrs');
+  return el;
+}
+function findDropTarget(e) {
+  const type = dragType(); if (!type) return null;
+  let k = resolveKids(e.target.closest ? e.target.closest('.kids, [data-tabbook]') : null);
+  while (k) {
+    const cid = k.dataset.cid, cn = nodeById(cid);
+    const ok = cn && accepts(cn.type, type) && !(drag.kind === 'move' && isInside(drag.id, cid));
+    if (ok) break;
+    k = resolveKids(k.parentElement && k.parentElement.closest('.kids, [data-tabbook]'));
+  }
+  if (!k && accepts('ROOT', type)) k = stage.querySelector('.kids[data-cid="root"]');
+  if (!k) return null;
+  const o = k.dataset.orient;
+  if (o === 'c') {
+    const r = k.querySelector('svg').getBoundingClientRect();
+    return {k, cid: k.dataset.cid, index: nodeById(k.dataset.cid).children.length, x: Math.round(e.clientX - r.left), y: Math.round(e.clientY - r.top), items: []};
+  }
+  const items = [...k.children].filter(c => c.dataset && c.dataset.id);
+  let i = 0;
+  for (; i < items.length; i++) {
+    const r = items[i].getBoundingClientRect();
+    if (o === 'v') { if (e.clientY < r.top + r.height / 2) break; }
+    else if (o === 'h') { if (e.clientX < r.left + r.width / 2) break; }
+    else { if (e.clientY < r.top) break; if (e.clientY <= r.bottom && e.clientX < r.left + r.width / 2) break; }
+  }
+  // map DOM index -> model index (RAWLINEs are invisible but live in the model)
+  const parent = nodeById(k.dataset.cid);
+  const index = i < items.length ? parent.children.findIndex(c => c.id === items[i].dataset.id) : parent.children.length;
+  return {k, cid: k.dataset.cid, index, domIndex: i, items};
+}
+function clearDrop() { dropline.style.display = 'none'; document.querySelectorAll('.drop-target').forEach(x => x.classList.remove('drop-target')); }
+function showDrop(t) {
+  clearDrop();
+  t.k.classList.add('drop-target');
+  const o = t.k.dataset.orient;
+  if (o === 'c') return;
+  let x, y, w, hh;
+  const items = t.items;
+  if (!items.length) { const r = t.k.getBoundingClientRect(); x = r.left + 4; y = r.top + r.height / 2 - 1; w = Math.max(20, r.width - 8); hh = 3; }
+  else {
+    const last = t.domIndex >= items.length, r = items[last ? items.length - 1 : t.domIndex].getBoundingClientRect();
+    if (o === 'v') { x = r.left; w = r.width; hh = 3; y = last ? r.bottom + 1 : r.top - 3; }
+    else { y = r.top; hh = r.height; w = 3; x = last ? r.right + 1 : r.left - 3; }
+  }
+  Object.assign(dropline.style, {display: 'block', left: x + 'px', top: y + 'px', width: w + 'px', height: hh + 'px'});
+}
+stage.addEventListener('dragover', e => {
+  if (!drag) return;
+  const t = findDropTarget(e);
+  if (!t) { clearDrop(); return; }
+  e.preventDefault(); e.dataTransfer.dropEffect = drag.kind === 'new' ? 'copy' : 'move';
+  showDrop(t);
+});
+$('#stagewrap').addEventListener('dragover', e => { if (drag && !stage.contains(e.target)) { const t = findDropTarget(e); if (t) { e.preventDefault(); showDrop(t); } } });
+$('#stagewrap').addEventListener('drop', e => {
+  e.preventDefault();
+  if (!drag) return;
+  const t = findDropTarget(e); clearDrop();
+  if (t) doDrop(t);
+  drag = null;
+});
+document.addEventListener('dragend', () => { drag = null; clearDrop(); });
+function doDrop(t) {
+  const target = nodeById(t.cid);
+  if (drag.kind === 'new') {
+    snapshot();
+    const node = mk(drag.type);
+    if (t.k.dataset.orient === 'c') setCanvasPos(node, t.x, t.y);
+    insertAt(target, t.index, node);
+    select(node.id); renderCode(); save();
+  } else {
+    const f = find(drag.id); if (!f) return;
+    let idx = t.index;
+    if (f.parent === target && f.index < idx) idx--;
+    if (f.parent === target && idx === f.index && t.k.dataset.orient !== 'c') return;
+    snapshot();
+    f.parent.children.splice(f.index, 1);
+    if (t.k.dataset.orient === 'c') setCanvasPos(f.node, t.x, t.y);
+    insertAt(target, idx, f.node);
+    select(f.node.id); renderCode(); save();
+  }
+}
+
+/* click selection */
+stage.addEventListener('click', e => {
+  const el = e.target.closest('[data-id]');
+  if (!el) { if (state.sel) select(null); return; }
+  if (el.dataset.tab) state.activeTab[el.dataset.tab] = el.dataset.id;
+  select(el.dataset.id);
+});
+$('#stagewrap').addEventListener('click', e => { if (e.target === e.currentTarget && state.sel) select(null); });
+
+/* canvas item dragging */
+stage.addEventListener('pointerdown', e => {
+  const g = e.target.closest && e.target.closest('svg.cv [data-id]');
+  if (!g || e.button !== 0) return;
+  e.preventDefault();
+  const n = find(g.dataset.id).node;
+  cvDrag = {id: n.id, sx: e.clientX, sy: e.clientY, orig: n.params.slice(), moved: false, snap: JSON.stringify(scr)};
+  if (state.sel !== n.id) select(n.id);
+});
+window.addEventListener('pointermove', e => {
+  if (!cvDrag) return;
+  let dx = e.clientX - cvDrag.sx, dy = e.clientY - cvDrag.sy;
+  if (!cvDrag.moved && Math.abs(dx) + Math.abs(dy) < 3) return;
+  if (!cvDrag.moved) { hist.push(cvDrag.snap); fut = []; cvDrag.moved = true; updateUndo(); }
+  const n = find(cvDrag.id)?.node; if (!n) return;
+  const d = DEFS[n.type];
+  n.params = cvDrag.orig.slice();
+  const [xi, yi] = d.pos[0], x0 = num(n.params[xi], 0), y0 = num(n.params[yi], 0);
+  if (e.shiftKey) { dx = Math.round((x0 + dx) / 10) * 10 - x0; dy = Math.round((y0 + dy) / 10) * 10 - y0; }
+  nudgeCanvas(n, dx, dy);
+  renderStage();
+});
+window.addEventListener('pointerup', () => {
+  if (!cvDrag) return;
+  const moved = cvDrag.moved; cvDrag = null;
+  if (moved) { renderOutline(); renderInspector(); renderCode(); save(); }
+});
+
+/* =====================================================================
+   Keyboard
+   ===================================================================== */
+document.addEventListener('keydown', e => {
+  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName);
+  const mod = e.metaKey || e.ctrlKey, k = e.key;
+  if (mod && k.toLowerCase() === 'z' && !typing) { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
+  if (mod && k.toLowerCase() === 'y' && !typing) { e.preventDefault(); redo(); return; }
+  if (typing) return;
+  if (mod && k.toLowerCase() === 'd') { e.preventDefault(); duplicate(); return; }
+  if (mod && k.toLowerCase() === 'c') { if (state.sel && !getSelection().toString()) { e.preventDefault(); copySel(); } return; }
+  if (mod && k.toLowerCase() === 'v') { if (state.clip) { e.preventDefault(); pasteClip(); } return; }
+  if (k === 'Escape') { select(null); return; }
+  if ((k === 'Delete' || k === 'Backspace') && state.sel) { e.preventDefault(); del(); return; }
+  if (k.startsWith('Arrow') && state.sel) {
+    const n = find(state.sel)?.node; if (!n) return;
+    if (DEFS[n.type]?.cv) {
+      e.preventDefault(); snapshot();
+      const s = e.shiftKey ? 10 : 1;
+      nudgeCanvas(n, k === 'ArrowLeft' ? -s : k === 'ArrowRight' ? s : 0, k === 'ArrowUp' ? -s : k === 'ArrowDown' ? s : 0);
+      renderStage(); renderInspector(); renderCode(); save();
+    } else if (e.altKey && (k === 'ArrowUp' || k === 'ArrowDown')) { e.preventDefault(); moveBy(k === 'ArrowUp' ? -1 : 1); }
+  }
+});
+
+/* =====================================================================
+   Header buttons, code panel, file IO
+   ===================================================================== */
+function loadText(text, label) {
+  const {screen, warn} = parse(text);
+  snapshot();
+  scr = screen; state.sel = null; state.activeTab = {}; state.codeDirty = false;
+  renderAll();
+  if (warn.length) setStatus('Loaded with notes: ' + warn.join(' · '), 'err');
+  else if (label) toast(label);
+}
+$('#bNew').onclick = () => { snapshot(); const t = scr.target; scr = newScreen(); scr.target = t; state.sel = null; state.codeDirty = false; renderAll(); };
+$('#bExample').onclick = () => loadText(EXAMPLE, 'Example loaded');
+$('#bUndo').onclick = undo; $('#bRedo').onclick = redo;
+$('#bOpen').onclick = () => $('#file').click();
+$('#file').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  scr.name = f.name.replace(/\.txt$/i, '');
+  loadText(await f.text(), 'Opened ' + f.name); e.target.value = '';
+};
+$('#guides').onchange = e => { state.guides = e.target.checked; renderStage(); save(); };
+$('#bCopy').onclick = async () => {
+  const text = state.codeDirty ? $('#code').value : generate();
+  try { await navigator.clipboard.writeText(text); }
+  catch (err) { const t = $('#code'); t.focus(); t.select(); document.execCommand('copy'); }
+  toast('Screen text copied — paste it into COSMOS');
+};
+$('#bDownload').onclick = () => {
+  const text = state.codeDirty ? $('#code').value : generate();
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], {type: 'text/plain'}));
+  a.download = (scr.name || 'screen').toLowerCase().replace(/[^a-z0-9_-]+/g, '_') + '.txt';
+  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+$('#code').addEventListener('input', () => { state.codeDirty = true; setStatus('Text edited — Apply to update the designer, or Revert', 'dirty'); });
+$('#bApply').onclick = () => { state.codeDirty = false; loadText($('#code').value, 'Applied'); };
+$('#bRevert').onclick = () => { state.codeDirty = false; renderCode(); };
+
+/* resizable code panel */
+$('#grip').addEventListener('pointerdown', e => {
+  const startY = e.clientY, startH = $('#codepanel').offsetHeight;
+  const mv = ev => { $('#codepanel').style.height = Math.max(60, Math.min(window.innerHeight - 160, startH - (ev.clientY - startY))) + 'px'; };
+  const up = () => { window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); };
+  window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up);
+});
+
+const EXAMPLE = `SCREEN AUTO AUTO 1.0
+
+VERTICAL
+  TITLE "INST Health and Status"
+  HORIZONTAL
+    VERTICALBOX "Temperatures"
+      LABELVALUELIMITSBAR INST HEALTH_STATUS TEMP1
+      LABELVALUELIMITSBAR INST HEALTH_STATUS TEMP2
+      LABELVALUELIMITSBAR INST HEALTH_STATUS TEMP3
+      LABELVALUELIMITSBAR INST HEALTH_STATUS TEMP4
+    END
+    VERTICALBOX "Collects"
+      LABELVALUE INST HEALTH_STATUS COLLECTS
+      LABELVALUE INST HEALTH_STATUS COLLECT_TYPE
+      LABELLED INST HEALTH_STATUS GROUND1STATUS
+        SETTING LED_COLOR CONNECTED GREEN
+        SETTING LED_COLOR UNAVAILABLE RED
+      HORIZONTAL
+        BUTTON 'Start Collect' "api.cmd('INST COLLECT with TYPE NORMAL, DURATION 5')"
+        BUTTON 'Abort' "api.cmd('INST ABORT')"
+      END
+    END
+  END
+  LABELSPARKLINE INST HEALTH_STATUS TEMP1
+END
+`;
+
+/* =====================================================================
+   Boot
+   ===================================================================== */
+(function boot() {
+  renderPalette();
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { saved = null; }
+  if (saved && saved.scr && saved.scr.root) { scr = saved.scr; state.guides = saved.guides !== false; }
+  else scr = parse(EXAMPLE).screen;
+  $('#guides').checked = state.guides;
+  renderAll();
+})();
+</script>
+</body>
+</html>
